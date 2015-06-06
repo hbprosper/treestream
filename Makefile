@@ -16,6 +16,8 @@ srcdir	:= src
 libdir	:= lib
 bindir	:= bin
 
+$(shell mkdir -p lib; mkdir - p tmp)
+
 # get lists of sources
 
 SRCS	:=  	$(srcdir)/treestream.cc \
