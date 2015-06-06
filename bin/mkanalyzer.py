@@ -468,48 +468,48 @@ AT 	:=
 else
 AT	:= @
 endif
-
+#-----------------------------------------------------------------------
+# sources and objects
+#-----------------------------------------------------------------------
 header  := $(incdir)/tnm.h
 linkdef := $(incdir)/linkdef.h
 cinthdr := $(tmpdir)/dictionary.h
 cintsrc := $(tmpdir)/dictionary.cc
-cintobj := $(tmpdir)/dictionary.o
 
-# Get list of sources to be compiled into applications
+# Construct list of sources to be compiled into applications
 appsrcs	:= $(wildcard *.cc)
+appobjects	:= $(addprefix $(tmpdir)/,$(appsrcs:.cc=.o))
 
 # Construct list of applications
 applications := $(appsrcs:.cc=)
 
-# Construct names of object models from list of sources
-appobjs	:= $(addprefix $(tmpdir)/,$(appsrcs:.cc=.o))
-
-# Get list of sources to be made into shared libraries
-cppsrcs	:= $(wildcard $(srcdir)/*.cpp)
-cppobjs	:= $(subst $(srcdir)/,$(tmpdir)/,$(cppsrcs:.cpp=.o))
-
-ccsrcs	:= $(wildcard $(srcdir)/*.cc) 
-ccobjs	:= $(subst $(srcdir)/,$(tmpdir)/,$(ccsrcs:.cc=.o))
-objects	:= $(cppobjs) $(ccobjs) $(cintobj)
-
-sharedlib := $(libdir)/libtnm.so
+# Construct list of sources to be compiled into shared library
+ccsrcs	:= $(filter-out $(cintsrc),$(wildcard $(srcdir)/*.cc))
+sources	:= $(ccsrcs) $(cintsrc)
+objects	:= $(subst $(srcdir)/,$(tmpdir)/,$(sources:.cc=.o))
 
 # Display list of applications to be built
-#say	:= $(shell echo -e "Apps: $(applications)" >& 2)
-#say	:= $(shell echo -e "AppObjs: $(appobjs)" >& 2)
-#say	:= $(shell echo -e "Objects: $(objects)" >& 2)
+#say	:= $(shell echo "appsrcs:     $(appsrcs)" >& 2)
+#say	:= $(shell echo "appobjects:  $(appobjects)" >& 2)
+#say	:= $(shell echo "objects:     $(objects)" >& 2)
 #$(error bye!) 
 
 #-----------------------------------------------------------------------
 # 	Define which compilers and linkers to use
-
+#-----------------------------------------------------------------------
 # 	C++ Compiler/Linker
-CXX\t:= clang++
-LINK\t:= clang++
-CINT\t:= rootcint
+ifeq ($(shell which clang++),clang++)
+CXX     := clang++
+LINK	:= clang++
+else
+CXX     := g++
+LINK	:= g++
+endif 
+CINT	:= rootcint
 
+#-----------------------------------------------------------------------
 # 	Define paths to be searched for C++ header files (#include ....)
-
+#-----------------------------------------------------------------------
 CPPFLAGS:= -I. -I$(incdir) -I$(srcdir) $(shell root-config --cflags) 
 
 # 	Define compiler flags to be used
@@ -521,18 +521,19 @@ CPPFLAGS:= -I. -I$(incdir) -I$(srcdir) $(shell root-config --cflags)
 #	-pipe	communicate via different stages of compilation
 #			using pipes rather than temporary files
 
-CXXFLAGS:= -c -g -O2 -ansi -Wall -pipe -fPIC -Wno-ignored-qualifiers
+CXXFLAGS:= -c -g -O2 -ansi -Wall -pipe -fPIC
 
 #	C++ Linker
 #   set default path to shared library
-
 LD	:= $(LINK) -Wl,-rpath,$(PWD)/$(libdir)
 
 OS	:= $(shell uname -s)
 ifeq ($(OS),Darwin)
     LDSHARED	:= $(LD) -dynamiclib
+    LDEXT       := .dylib
 else
     LDSHARED	:= $(LD) -shared
+    LDEXT       := .os
 endif
 
 #	Linker flags
@@ -544,7 +545,7 @@ LDFLAGS := -g
 LIBS	:=  \
 $(shell root-config --libs) -L$(libdir) -lMinuit  -lMathMore -lMathCore
 
-
+#-----------------------------------------------------------------------
 #	Rules
 #	The structure of a rule is
 #	target : source
@@ -552,7 +553,7 @@ $(shell root-config --libs) -L$(libdir) -lMinuit  -lMathMore -lMathCore
 #	The command makes a target from the source. 
 #	$@ refers to the target
 #	$< refers to the source
-
+#-----------------------------------------------------------------------
 all:	$(sharedlib) $(applications) 
 
 bin:	$(applications)
@@ -562,47 +563,35 @@ lib:	$(sharedlib)
 # Syntax:
 # list of targets : target pattern : source pattern
 
-
 # Make applications depend on shared libraries to force the latter
 # to be built first
 
-$(applications)	: %(percent)s	: $(tmpdir)/%(percent)s.o  $(sharedlib)
+$(applications)\t: %(percent)s\t: $(tmpdir)/%(percent)s.o  $(sharedlib)
 \t@echo "---> Linking $@"
 \t$(AT)$(LD) $(LDFLAGS) $< $(LIBS) -ltnm -o $@
 
-$(sharedlib)	: $(objects)
+$(appobjects)\t: $(tmpdir)/%(percent)s.o\t: %(percent)s.cc
+\t@echo "---> Compiling application `basename $<`" 
+\t$(AT)$(CXX) $(CXXFLAGS) $(CPPFLAGS)  $< -o $@ >& $*.FAILED
+\t@rm -rf $*.FAILED
+
+$(sharedlib)\t: $(objects)
 \t@echo "---> Linking `basename $@`"
 \t$(AT)$(LDSHARED) $(LDFLAGS) -fPIC $(objects) $(LIBS) -o $@
 
-$(cppobjs)	: $(tmpdir)/%(percent)s.o	: $(srcdir)/%(percent)s.cpp
+$(objects)	: $(tmpdir)/%(percent)s.o	: $(srcdir)/%(percent)s.cc
 \t@echo "---> Compiling `basename $<`" 
 \t$(AT)$(CXX) $(CXXFLAGS) $(CPPFLAGS)  $< -o $@ >& $*.FAILED
 \t$(AT)rm -rf $*.FAILED
-
-$(ccobjs)	: $(tmpdir)/%(percent)s.o	: $(srcdir)/%(percent)s.cc
-\t@echo "---> Compiling `basename $<`" 
-\t$(AT)$(CXX) $(CXXFLAGS) $(CPPFLAGS)  $< -o $@ >& $*.FAILED
-\t$(AT)rm -rf $*.FAILED
-
-$(appobjs)	: $(tmpdir)/%(percent)s.o	: %(percent)s.cc
-\t@echo "---> Compiling `basename $<`" 
-\t$(AT)$(CXX) $(CXXFLAGS) $(CPPFLAGS)  $< -o $@ >& $*.FAILED
-\t$(AT)rm -rf $*.FAILED
-
-$(cintobj)  : $(cintsrc)
-\t@echo "---> Compiling `basename $<`"
-\t$(AT)$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
 
 $(cintsrc)  : $(header) $(linkdef)
 \t@echo "---> Generating dictionary `basename $@`"
 \t$(AT)$(CINT) -f $@ -c -I. -Iinclude -I$(ROOTSYS)/include $+
 
-
 # 	Define clean up rules
 clean   :
-\trm -rf $(tmpdir)/*.o $(applications) $(libdir)/*.so
+\trm -rf $(tmpdir)/* $(libdir)/* $(srcdir)/dictionary* $(applications)
 '''
-
 
 README = '''Created: %(time)s
 
@@ -634,7 +623,6 @@ README = '''Created: %(time)s
     datahist.root, do
 
        ./%(name)s datafile.list datahist.root
-
 
 For details, please refer to the documentation at:
 
