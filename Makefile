@@ -39,7 +39,8 @@ OBJECTS		:= $(SRCS:.cc=.o) $(OTHERSRCS:.cc=.o) $(DICTIONARIES:.cc=.o)
 #$(error bye)
 # ----------------------------------------------------------------------------
 ROOTCINT	:= rootcint
-ifeq ($(shell which clang++),clang++)
+COMPILER	:= $(shell which clang++ >& $(HOME)/.cxx; tail $(HOME)/.cxx; rm -rf $(HOME)/.cxx)
+ifeq ($(COMPILER),clang++)
 CXX		:= clang++
 LD		:= clang++
 else
@@ -62,8 +63,9 @@ else
 endif	
 LDFLAGS += $(shell root-config --ldflags)
 LIBS 	:= -lPyROOT $(shell root-config --libs --nonew)
+LIBRARY	:= $(libdir)/lib$(NAME)$(LDEXT)
 # ----------------------------------------------------------------------------
-all: lib$(NAME)$(LDEXT)
+all: $(LIBRARY)
 
 install:
 	cp $(bindir)/mk*.py $(EXTERNAL)/bin
@@ -72,10 +74,10 @@ install:
 	cp $(libdir)/lib$(NAME)$(LDEXT) $(EXTERNAL)/lib
 	find $(libdir) -name "*.pcm" -exec cp {} $(EXTERNAL)/lib \;
 
-lib$(NAME)$(LDEXT)	: $(OBJECTS)
+$(LIBRARY)	: $(OBJECTS)
 	@echo ""
 	@echo "=> Linking shared library $@"
-	$(LD) $(LDFLAGS) $^ $(LIBS)  -o $(libdir)/$@
+	$(LD) $(LDFLAGS) $^ $(LIBS)  -o $@
 
 $(OBJECTS)	: %.o	: 	%.cc
 	@echo ""
