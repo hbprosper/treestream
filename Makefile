@@ -39,7 +39,9 @@ OBJECTS		:= $(SRCS:.cc=.o) $(OTHERSRCS:.cc=.o) $(DICTIONARIES:.cc=.o)
 #$(error bye)
 # ----------------------------------------------------------------------------
 ROOTCINT	:= rootcint
-COMPILER	:= $(shell which clang++ >& $(HOME)/.cxx; tail $(HOME)/.cxx; rm -rf $(HOME)/.cxx)
+
+# check for clang++, otherwise use g++
+COMPILER	:= $(shell basename `which clang++` >& $(HOME)/.cxx; tail $(HOME)/.cxx)
 ifeq ($(COMPILER),clang++)
 CXX		:= clang++
 LD		:= clang++
