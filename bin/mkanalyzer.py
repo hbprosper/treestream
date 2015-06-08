@@ -18,6 +18,7 @@
 #          17-Dec-2014 HBP - change to eventBuffer since that is a better
 #                            name for this class
 #          14-May-2015 HBP - make compatible with latest version of Delphes
+#          08-Jun-2015 HBP - fix makefile (define sharedlib)
 #-----------------------------------------------------------------------------
 import os, sys, re, posixpath
 from string import atof, atoi, replace, lower,\
@@ -497,8 +498,10 @@ objects	:= $(subst $(srcdir)/,$(tmpdir)/,$(sources:.cc=.o))
 #-----------------------------------------------------------------------
 # 	Define which compilers and linkers to use
 #-----------------------------------------------------------------------
-# 	C++ Compiler/Linker
-ifeq ($(shell which clang++),clang++)
+# If clang++ exists use it, otherwise use g++
+COMPILER:= $(shell which clang++ >& $(HOME)/.cxx; tail $(HOME)/.cxx)
+COMPILER:= $(shell basename "$(COMPILER)")
+ifeq ($(COMPILER),clang++)
 CXX     := clang++
 LINK	:= clang++
 else
@@ -544,6 +547,8 @@ LDFLAGS := -g
 
 LIBS	:=  \
 $(shell root-config --libs) -L$(libdir) -lMinuit  -lMathMore -lMathCore
+
+sharedlib := $(libdir)/lib$(name)$(LDEXT)
 
 #-----------------------------------------------------------------------
 #	Rules

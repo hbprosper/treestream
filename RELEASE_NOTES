@@ -1,4 +1,8 @@
+v1_0_1
+------
+	1. Fix Makefile
+	
 v1_0_0
 ------
-	1. First release of treestream
-	
+	1. First release of treestream as a seperate package from
+	TheNtupleMaker
