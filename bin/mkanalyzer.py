@@ -49,7 +49,7 @@ def join(left, a, right):
 def getauthor():
     regex  = re.compile(r'(?<=[0-9]:)[A-Z]+[a-zA-Z. ]+')
     record = strip(os.popen("getent passwd $USER").read())
-    author = "Shakepeare's ghost"
+    author = "Shakespeare's ghost"
     if record != "":
         t = regex.findall(record)
         if len(t) > 0: author = t[0]
