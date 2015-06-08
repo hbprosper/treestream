@@ -474,8 +474,8 @@ endif
 #-----------------------------------------------------------------------
 header  := $(incdir)/tnm.h
 linkdef := $(incdir)/linkdef.h
-cinthdr := $(tmpdir)/dictionary.h
-cintsrc := $(tmpdir)/dictionary.cc
+cinthdr := $(srcdir)/dictionary.h
+cintsrc := $(srcdir)/dictionary.cc
 
 # Construct list of sources to be compiled into applications
 appsrcs	:= $(wildcard *.cc)
@@ -548,7 +548,7 @@ LDFLAGS := -g
 LIBS	:=  \
 $(shell root-config --libs) -L$(libdir) -lMinuit  -lMathMore -lMathCore
 
-sharedlib := $(libdir)/lib$(name)$(LDEXT)
+sharedlib := $(libdir)/libtnm$(LDEXT)
 
 #-----------------------------------------------------------------------
 #	Rules
@@ -592,6 +592,7 @@ $(objects)	: $(tmpdir)/%(percent)s.o	: $(srcdir)/%(percent)s.cc
 $(cintsrc)  : $(header) $(linkdef)
 \t@echo "---> Generating dictionary `basename $@`"
 \t$(AT)$(CINT) -f $@ -c -I. -Iinclude -I$(ROOTSYS)/include $+
+\t$(AT)mv $(srcdir)/*.pcm $(libdir)
 
 # 	Define clean up rules
 clean   :
