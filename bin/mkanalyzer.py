@@ -230,7 +230,8 @@ struct eventBuffer
 %(choose)s
     if ( DEFAULT )
       {
-        std::cout << "eventBuffer - All branches selected"
+        std::cout << std::endl
+                  << "eventBuffer - All branches selected"
                   << std::endl;
       }
     else
