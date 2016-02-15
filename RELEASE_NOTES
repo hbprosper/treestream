@@ -1,3 +1,8 @@
+V1_0_2
+------
+	1. Improve Makefile
+	2. Allow selection of branches in eventBuffer
+	
 v1_0_1
 ------
 	1. Fix Makefile

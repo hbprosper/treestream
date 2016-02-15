@@ -3,11 +3,11 @@
 #         30 May 2015 HBP - standardize structure (src, lib, include) 
 # ----------------------------------------------------------------------------
 ifndef ROOTSYS
-	$(error *** Please set up Root compiled with RooFit/RooStats)
+	$(error *** Please set up Root)
 endif
 
 ifndef EXTERNAL
-$(error *** define EXTERNAL = to location of your bin, lib, and include directories)
+$(error *** export EXTERNAL=to location of your external packages)
 endif
 # ----------------------------------------------------------------------------
 NAME	:= treestream
@@ -15,7 +15,7 @@ incdir	:= include
 srcdir	:= src
 libdir	:= lib
 bindir	:= bin
-$(shell mkdir -p lib; mkdir -p tmp)
+$(shell mkdir -p lib)
 
 # get lists of sources
 
@@ -41,9 +41,8 @@ OBJECTS		:= $(SRCS:.cc=.o) $(OTHERSRCS:.cc=.o) $(DICTIONARIES:.cc=.o)
 ROOTCINT	:= rootcint
 
 # check for clang++, otherwise use g++
-COMPILER	:= $(shell which clang++ >& $(HOME)/.cxx; tail $(HOME)/.cxx)
-COMPILER	:= $(shell basename "$(COMPILER)")
-ifeq ($(COMPILER),clang++)
+COMPILER	:= $(shell which clang++)
+ifneq ($(COMPILER),)
 CXX		:= clang++
 LD		:= clang++
 else
@@ -65,7 +64,7 @@ else
 	LDEXT	:= .so
 endif	
 LDFLAGS += $(shell root-config --ldflags)
-LIBS 	:= -lPyROOT $(shell root-config --libs --nonew)
+LIBS 	:= -lPyROOT $(shell root-config --libs)
 LIBRARY	:= $(libdir)/lib$(NAME)$(LDEXT)
 # ----------------------------------------------------------------------------
 all: $(LIBRARY)
@@ -75,7 +74,7 @@ install:
 	cp $(incdir)/treestream.h $(EXTERNAL)/include
 	cp $(incdir)/pdg.h $(EXTERNAL)/include
 	cp $(libdir)/lib$(NAME)$(LDEXT) $(EXTERNAL)/lib
-	find $(libdir) -name "*.pcm" -exec cp {} $(EXTERNAL)/lib \;
+	find $(libdir) -name "*.pcm" -exec mv {} $(EXTERNAL)/lib \;
 
 $(LIBRARY)	: $(OBJECTS)
 	@echo ""

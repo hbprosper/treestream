@@ -19,6 +19,7 @@
 #                            name for this class
 #          14-May-2015 HBP - make compatible with latest version of Delphes
 #          08-Jun-2015 HBP - fix makefile (define sharedlib)
+#          13-Feb-2016 HBP - allow possibility to turn on/off branches
 #-----------------------------------------------------------------------------
 import os, sys, re, posixpath
 from string import atof, atoi, replace, lower,\
@@ -48,7 +49,9 @@ def join(left, a, right):
 
 def getauthor():
     regex  = re.compile(r'(?<=[0-9]:)[A-Z]+[a-zA-Z. ]+')
-    record = strip(os.popen("getent passwd $USER").read())
+    record = strip(os.popen("which getent").read())
+    if record != "":
+        record = strip(os.popen("getent passwd $USER").read())
     author = "Shakespeare's ghost"
     if record != "":
         t = regex.findall(record)
@@ -202,20 +205,33 @@ struct eventBuffer
 %(structimpl)s
 %(structvec)s
 %(structimplall)s
-  //--------------------------------------------------------------------------
+   //--------------------------------------------------------------------------
 %(selectimpl)s
   //--------------------------------------------------------------------------
   // A read-only buffer 
-  eventBuffer() : input(0), output(0) {}
-  eventBuffer(itreestream& stream)
+  eventBuffer() : input(0), output(0), choose(std::map<std::string, bool>()) {}
+  eventBuffer(itreestream& stream, std::string varlist="")
   : input(&stream),
-    output(0)
+    output(0),
+    choose(std::map<std::string, bool>())
   {
     if ( !input->good() ) 
       {
         std::cout << "eventBuffer - please check stream!" 
                   << std::endl;
-	exit(0);
+	    exit(0);
+      }
+    bool DEFAULT = varlist == "";
+%(choose)s
+    if ( ! DEFAULT )
+      {
+        std::istringstream sin(varlist);
+        while ( sin )
+          {
+            std::string key;
+            sin >> key;
+            if ( sin ) choose[key] = true;
+          }
       }
     initBuffers();
 
@@ -303,6 +319,9 @@ struct eventBuffer
  // to write events
  otreestream* output;
 
+ // switches for choosing branches
+ std::map<std::string, bool> choose;
+
 }; 
 #endif
 '''
@@ -336,6 +355,12 @@ int main(int argc, char** argv)
   if ( !stream.good() ) error("can't read root input files");
 
   // Create a buffer to receive events from the stream
+  // The default is to select all branches
+  // Use second argument to select specific branches
+  // Example:
+  //   varlist = 'Jet_PT Jet_Eta Jet_Phi'
+  //   ev = eventBuffer(stream, varlist)
+
   eventBuffer ev(stream);
   
   int nevents = ev.size();
@@ -405,6 +430,12 @@ def main():
         error("can't read input files")
 
     # Create a buffer to receive events from the stream
+    # The default is to select all branches.
+    # Use second argument to select specific branches
+    # Example:
+    #   varlist = 'Jet_PT Jet_Eta Jet_Phi'
+    #   ev = eventBuffer(stream, varlist)
+    #
     ev = eventBuffer(stream)
 
     nevents = ev.size()
@@ -499,9 +530,8 @@ objects	:= $(subst $(srcdir)/,$(tmpdir)/,$(sources:.cc=.o))
 # 	Define which compilers and linkers to use
 #-----------------------------------------------------------------------
 # If clang++ exists use it, otherwise use g++
-COMPILER:= $(shell which clang++ >& $(HOME)/.cxx; tail $(HOME)/.cxx)
-COMPILER:= $(shell basename "$(COMPILER)")
-ifeq ($(COMPILER),clang++)
+COMPILER:= $(shell which clang++)
+ifneq ($(COMPILER),)
 CXX     := clang++
 LINK	:= clang++
 else
@@ -876,7 +906,7 @@ def main():
     setb      = []
     addb      = []
     impl      = []
-
+    choose    = []
     # first create counters
     counters = {}
     for index, varname in enumerate(keys):
@@ -925,10 +955,10 @@ def main():
                 impl.append('    %s.clear();' % varname)
                 impl.append('')
 
-
-
-        setb.append('  input->select("%s",' % branchname)
-        setb.append('                %s);'  % varname)
+        choose.append('  choose["%s"]\t= DEFAULT;' % branchname)
+        setb.append('  if ( choose["%s"] )'   % branchname)
+        setb.append('    input->select("%s",' % branchname)
+        setb.append('                   %s);' % varname)
 
         if count == 1:
             declare.append("  %s\t%s;" % (rtype, varname))
@@ -1131,6 +1161,7 @@ def main():
              'vardecl':    join("", declarevec, "\n"),
              'init':       join("", init, "\n"),
              'setb':       join("  ", setb, "\n"),
+             'choose':     join("  ", choose, "\n"),
              'addb':       join("  ", addb, "\n"),
              'structdecl': join("", structdecl, "\n"),
              'structimpl': join("", structimpl, "\n"),
