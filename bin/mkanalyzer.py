@@ -96,9 +96,10 @@ if not os.path.exists(TREESTREAM_HPP):
     mkdir -p external/lib
     mkdir -p external/include
     cd external
-    git clone http://github.com/hbprosper/treestream.git
+    git clone https://github.com/hbprosper/treestream.git
 
     then
+    
     cd treestream
     make
     make install
@@ -221,20 +222,45 @@ struct eventBuffer
                   << std::endl;
 	    exit(0);
       }
+
+    initBuffers();
+    
+    // default is to select all branches      
     bool DEFAULT = varlist == "";
 %(choose)s
-    if ( ! DEFAULT )
+    if ( DEFAULT )
       {
+        std::cout << "eventBuffer - All branches selected"
+                  << std::endl;
+      }
+    else
+      {
+        std::cout << "eventBuffer - branches selected:"
+                  << std::endl;      
         std::istringstream sin(varlist);
         while ( sin )
           {
             std::string key;
             sin >> key;
-            if ( sin ) choose[key] = true;
+            if ( sin )
+              {
+                if ( choose.find(key) != choose.end() )
+                  {
+                    choose[key] = true;
+                    std::cout << "\t" << key << std::endl;
+                  }
+                else
+                  {
+                    std::cout << "\t** error ** unknown branch: "
+                              << key
+                              << std::endl
+                              << "Please fix and try again. Bye!"
+                              << std::endl;
+                    exit(0);
+                  }
+              }
           }
       }
-    initBuffers();
-
 %(setb)s
   }
 
