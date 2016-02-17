@@ -593,7 +593,7 @@ ifeq ($(OS),Darwin)
     LDEXT       := .dylib
 else
     LDSHARED	:= $(LD) -shared
-    LDEXT       := .os
+    LDEXT       := .so
 endif
 
 #	Linker flags
