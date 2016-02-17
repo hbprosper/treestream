@@ -90,7 +90,7 @@ outputFile::outputFile(std::string filename)
 {
   file_->cd();
   hist_ = new TH1F("counts", "", 1,0,1);
-  hist_->SetBit(TH1::kCanRebin);
+  hist_->SetCanExtend(1);
   hist_->SetStats(0);
 }
 
@@ -114,7 +114,7 @@ outputFile::outputFile(std::string filename,
 	    << filename_ << std::endl;
   file_->cd();
   hist_ = new TH1F("counts", "", 1,0,1);
-  hist_->SetBit(TH1::kCanRebin);
+  hist_->SetCanExtend(1);
   hist_->SetStats(0);
 }
 

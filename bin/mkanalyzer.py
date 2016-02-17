@@ -634,7 +634,7 @@ $(applications)\t: %(percent)s\t: $(tmpdir)/%(percent)s.o  $(sharedlib)
 
 $(appobjects)\t: $(tmpdir)/%(percent)s.o\t: %(percent)s.cc
 \t@echo "---> Compiling application `basename $<`" 
-\t$(AT)$(CXX) $(CXXFLAGS) $(CPPFLAGS)  $< -o $@ >& $*.FAILED
+\t$(AT)$(CXX) $(CXXFLAGS) $(CPPFLAGS)  $< -o $@ # >& $*.FAILED
 \t@rm -rf $*.FAILED
 
 $(sharedlib)\t: $(objects)
@@ -643,7 +643,7 @@ $(sharedlib)\t: $(objects)
 
 $(objects)	: $(tmpdir)/%(percent)s.o	: $(srcdir)/%(percent)s.cc
 \t@echo "---> Compiling `basename $<`" 
-\t$(AT)$(CXX) $(CXXFLAGS) $(CPPFLAGS)  $< -o $@ >& $*.FAILED
+\t$(AT)$(CXX) $(CXXFLAGS) $(CPPFLAGS)  $< -o $@ # >& $*.FAILED
 \t$(AT)rm -rf $*.FAILED
 
 $(cintsrc)  : $(header) $(linkdef)
