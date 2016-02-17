@@ -603,7 +603,7 @@ LDFLAGS := -g
 # 	Libraries
 
 LIBS	:=  \
-$(shell root-config --libs) -L$(libdir) -lMinuit  -lMathMore -lMathCore
+$(shell root-config --libs) -L$(libdir) -lMinuit -lMathCore
 
 sharedlib := $(libdir)/libtnm$(LDEXT)
 
@@ -860,6 +860,11 @@ def main():
             continue
 
         if find(lower(rtype), 'ref') > -1:
+            print "** warning: access to %s of type %s "\
+            "must be hand-coded" % (branchname, rtype)
+            continue
+
+        if find(lower(rtype), 'tlorentz') > -1:
             print "** warning: access to %s of type %s "\
             "must be hand-coded" % (branchname, rtype)
             continue

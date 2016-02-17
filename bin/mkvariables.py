@@ -62,7 +62,7 @@ except:
     mkdir -p external/lib
     mkdir -p external/include
     cd external
-    git clone http://github.com/hbprosper/treestream.git
+    git clone https://github.com/hbprosper/treestream.git
 
     then
     cd treestream
