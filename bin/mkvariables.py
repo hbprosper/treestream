@@ -133,7 +133,7 @@ def main():
             maxcount = 1
         elif len(x) == 5:
             a, branch, c, btype, maxcount = x
-            maxcount = 1 + 2*atoi(maxcount[1:-1])
+            maxcount = atoi(maxcount[1:-1])
         else:
             print "\t**hmmm...not sure what to do with:\n\t%s\n\tchoi!" % x
             sys.exit(0)

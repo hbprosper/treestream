@@ -837,6 +837,7 @@ def main():
     varmap    = {}
     vectormap = {}
 
+    skipped = '' # variables that are skipped
     for index, (rtype, branchname, varname, count) in enumerate(tokens):
 
         # Check if current variable is a leaf counter (flagged with an "*")
@@ -845,6 +846,12 @@ def main():
         count = atoi(t[0]) # Change type to an integer
         iscounter = t[-1] == "*"
 
+        if count > 1:
+            from math import sqrt
+            count = int(count + 5*sqrt(count))
+            ii = count / 5
+            count = (ii+1)*5
+            
         # make sure names are unique. If they aren't bail out!
 
         if varmap.has_key(varname):
@@ -855,18 +862,14 @@ def main():
         # do something about annoying types
 
         if find(varname, '[') > -1 and count > 1:
-            print "** warning: access to %s[%d] "\
-                  "must be hand-coded" % (branchname, count)
+            skipped += "%s[%d]\n" % (branchname, count)
             continue
-
         if find(lower(rtype), 'ref') > -1:
-            print "** warning: access to %s of type %s "\
-            "must be hand-coded" % (branchname, rtype)
+            skipped += "%s[%d]\n" % (branchname, count)
             continue
 
-        if find(lower(rtype), 'tlorentz') > -1:
-            print "** warning: access to %s of type %s "\
-            "must be hand-coded" % (branchname, rtype)
+        if find(lower(rtype), 'lorentz') > -1:
+            skipped += "%s[%d]\n" % (branchname, count)
             continue
 
         # special handling for Delphes
@@ -917,7 +920,7 @@ def main():
         varmap[varname] = [rtype, branchname, count, iscounter]
 
         # vector types must have the same object name and a max count > 1
-        if count > 1:
+        if count > 1:               
             if fldname != "":
 
                 # Make sure fldname is a valid	c++ name		
@@ -928,8 +931,10 @@ def main():
                 vectormap[objname].append((rtype, fldname, varname, count))
                 #print "%s.%s (%s)" % (objname, fldname, count)
 
+    if skipped != "":
+        open("variables_skipped.txt", "w").write(skipped)
+        
     # Declare all variables
-
     keys = varmap.keys()
     keys.sort()
     declarevec= []
@@ -1249,7 +1254,11 @@ fi
         open(outfilename,"w").write(record)
         os.system("chmod +x %s" % outfilename)
 
-    print "\tdone!"
+    print "\tcreated analysis directory: %s" % filename
+    print "\n\tdo"
+    print "\t\tcd %s" % filename
+    print "\t\tmake"
+    print "\n\tto build shared library libtnm.so\n"
 #------------------------------------------------------------------------------
 main()
 
