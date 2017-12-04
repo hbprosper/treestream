@@ -20,6 +20,7 @@
 #          14-May-2015 HBP - make compatible with latest version of Delphes
 #          08-Jun-2015 HBP - fix makefile (define sharedlib)
 #          13-Feb-2016 HBP - allow possibility to turn on/off branches
+#          03-Dec-2017 HBP - get name of leaf counter from variables.txt
 #-----------------------------------------------------------------------------
 import os, sys, re, posixpath
 from string import atof, atoi, replace, lower,\
@@ -69,8 +70,8 @@ if os.environ.has_key("CMSSW_BASE"):
     TNM_CPP = "%s/src/tnm.cc" % PACKAGE
     TNM_PY  = "%s/python/tnm.py" % PACKAGE
 else:
-    if os.environ.has_key('EXTERNAL'):
-        area  = {'local': '%s/treestream' % os.environ['EXTERNAL']}
+    if os.environ.has_key('TREESTREAM_PATH'):
+        area  = {'local': '%s' % os.environ['TREESTREAM_PATH']}
         TREESTREAM_HPP = "%(local)s/include/treestream.h" % area
         TREESTREAM_CPP = "%(local)s/src/treestream.cc" % area
         TNM_HPP = "%(local)s/tnm/tnm.h"  % area
@@ -754,6 +755,9 @@ def cmp(x, y):
     else:
         return 1
 #------------------------------------------------------------------------------
+isvector = re.compile('(?<!std::)vector')
+getvtype = re.compile('(?<=vector[<]).*(?=[>])')
+#------------------------------------------------------------------------------
 def main():
     print "\n\tmkanalyzer.py"
 
@@ -814,6 +818,8 @@ def main():
         # varname = variable name as determined by mkvariables.py
 
         tokens.append(split(record, '/'))
+
+        # note: count may include name of leafcounter or "*"
         rtype, branchname, varname, count = tokens[-1]
 
         # varname should have the format
@@ -840,11 +846,16 @@ def main():
     skipped = '' # variables that are skipped
     for index, (rtype, branchname, varname, count) in enumerate(tokens):
 
-        # Check if current variable is a leaf counter (flagged with an "*")
-
+        # check if current variable is a leaf counter (flagged with an "*")
+        # or contains the name of a leaf counter
         t = split(count)
-        count = atoi(t[0]) # Change type to an integer
-        iscounter = t[-1] == "*"
+        count = atoi(t[0]) # change type to an integer
+        iscounter   = t[-1] == "*"
+        
+        if t[0] != t[-1]:
+            countername = t[-1]
+        else:
+            countername = None
 
         if count > 1:
             from math import sqrt
@@ -852,7 +863,7 @@ def main():
             ii = count / 5
             count = (ii+1)*5
             
-        # make sure names are unique. If they aren't bail out!
+        # make sure names are unique. If they aren't bail!
 
         if varmap.has_key(varname):
             print "** error ** duplicate variable name %s; "\
@@ -873,8 +884,8 @@ def main():
             continue
 
         # special handling for Delphes
-        if find(varname, '_size') > -1:
-           varname = 'n%s' % replace(varname, '_size', '')
+        #if find(varname, '_size') > -1:
+        #   varname = 'n%s' % replace(varname, '_size', '')
 
         if rtype == "bool":
             rtype = "int"
@@ -893,8 +904,7 @@ def main():
         # If this is a leaf counter, which happens to have the same name
         # as a struct, then just ignore for now
         if iscounter:
-            if structname.has_key(varname):
-                varname = '%s_' % varname
+            pass
         else:            
             # Get object and field names
             t = split(varname,'_')
@@ -917,8 +927,8 @@ def main():
                         fldname = ''
                     
         # update map for all variables
-        varmap[varname] = [rtype, branchname, count, iscounter]
-
+        varmap[varname] = [rtype, branchname, count, iscounter, countername]
+        
         # vector types must have the same object name and a max count > 1
         if count > 1:               
             if fldname != "":
@@ -928,7 +938,7 @@ def main():
                     fldname = 'f%s' % fldname
 
                 if not vectormap.has_key(objname): vectormap[objname] = []	
-                vectormap[objname].append((rtype, fldname, varname, count))
+                vectormap[objname].append((rtype, fldname, varname, count, countername))
                 #print "%s.%s (%s)" % (objname, fldname, count)
 
     if skipped != "":
@@ -947,15 +957,15 @@ def main():
     # first create counters
     counters = {}
     for index, varname in enumerate(keys):
-        rtype, branchname, count, iscounter = varmap[varname]
+        rtype, branchname, count, iscounter, countername = varmap[varname]
         if iscounter:
             #objname = varname[1:] # n<object-name>
             counters[varname] = branchname
-            addb.append('  output->add("%s", %s);' % (branchname, varname))
+            addb.append('  output->add("%s", \t%s);' % (branchname, varname))
     addb.append('')
 
     for index, varname in enumerate(keys):
-        rtype, branchname, count, iscounter = varmap[varname]
+        rtype, branchname, count, iscounter, countername = varmap[varname]
 
         if macroMode:
 
@@ -994,30 +1004,48 @@ def main():
 
         choose.append('  choose["%s"]\t= DEFAULT;' % branchname)
         setb.append('  if ( choose["%s"] )'   % branchname)
-        setb.append('    input->select("%s",' % branchname)
-        setb.append('                   %s);' % varname)
+        cmd = '    input->select("%s", \t%s);' % (branchname, varname)
+        if len(cmd) < 75:
+            setb.append(cmd)
+        else:
+            setb.append('    input->select("%s",' % branchname)
+            setb.append('                   %s);' % varname)
 
         if count == 1:
             declare.append("  %s\t%s;" % (rtype, varname))
+
         else:
-            # this is a vector
-            declarevec.append("  std::vector<%s>\t%s;" % (rtype, varname))
+            # this is either a vector or a variable length array
 
-            init.append("    %s\t= std::vector<%s>(%d,0);" % \
-                        (varname, rtype, count))
-
-            objname = split(varname, '_')[0]
-            if not counters.has_key(objname):
-                objname += "_"
+            if find(rtype, 'vector') > -1:
+                rtype = isvector.sub("std::vector", rtype)
+                vtype = getvectype.findall(rtype)
+                if len(vtype) == 0:
+                    sys.exit("** error ** unable to extract type from %s for variable %s" % \
+                                 (rtype, varname))
+                vtype = vtype[0]
+                
+                declarevec.append("  %s\t%s;" % (rtype, varname))
+                init.append("    %s\t= %s(%d, %s);" % \
+                        (varname, rtype, count, vtype))
+            else:
+                declarevec.append("  std::vector<%s>\t%s;" % (rtype, varname))
+                init.append("    %s\t= std::vector<%s>(%d,0);" % \
+                            (varname, rtype, count))
+                if countername == None:
+                    sys.exit("** error ** array %s does not have a leafcounter name" % varname)
+                objname = countername
                 if not counters.has_key(objname):
-                    print "** mkanalyzer.py - object name %s not found" % \
-                    objname
-                    sys.exit(0)
-            branchname += "[%s]" % counters[objname]
-        if not iscounter:
-            addb.append('  output->add("%s",' % branchname)
-            addb.append('              %s);'  % varname)
+                    sys.exit("** error ** need to add leafcounter %s to variables.txt" % objname)
+                branchname += "[%s]" % counters[objname]
 
+        if not iscounter:
+            cmd = '  output->add("%s", \t%s);' % (branchname, varname)
+            if len(cmd) < 75:
+                addb.append(cmd)
+            else:            
+                addb.append('  output->add("%s",' % branchname)
+                addb.append('               %s);' % varname)
 
     # Create structs for vector variables
 
@@ -1032,18 +1060,18 @@ def main():
     selectdecl = []
     selectimpl = []
 
-    selectimpl.append('  // Select objects for which the select'\
+    selectimpl.append('  // Save objects for which the select'\
                       ' function was called')
     selectimpl.append('  void saveObjects()')
     selectimpl.append('  {')
-    selectimpl.append('    int n = 0;')
+    if len(keys) > 0:
+        selectimpl.append('    int n = 0;')
     structimplall.append('  void fillObjects()')
     structimplall.append('  {')
 
     for index, objname in enumerate(keys):
         values = vectormap[objname]
-        varname= values[0][-2]
-        count  = values[0][-1]
+        varname= values[0][-3]
 
         structimplall.append('    fill%ss();' % objname)
         structimpl.append('  void fill%ss()' % objname)
@@ -1071,7 +1099,7 @@ def main():
         structdecl.append('  struct %s_s' % objname)
         structdecl.append('  {')
 
-        for rtype, fldname, varname, count in values:
+        for rtype, fldname, varname, count, countername in values:
             # treat bools as ints
             if rtype == "bool":
                 cast = '(bool)'
@@ -1086,8 +1114,7 @@ def main():
                                                               cast,
                                                               varname))
 
-            selectimpl.append('            %s[i]\t= %s[j];' % (varname,
-                                                             varname))
+            selectimpl.append('            %s[i]\t= %s[j];' % (varname, varname))
 
         structvec.append('  std::vector<eventBuffer::%s_s> %s;' % \
                              (objname, objname))
@@ -1105,7 +1132,7 @@ def main():
         structdecl.append('      char r[1024];')
         structdecl.append('      os << "%s" << std::endl;' % objname)
 
-        for rtype, fldname, varname, count in values:
+        for rtype, fldname, varname, count, countername in values:
             structdecl.append('      sprintf(r, "  %s: %s\\n", "%s",'\
                               ' ( double)%s); '\
                               'os << r;' % ("%-32s", "%f", fldname, fldname))
@@ -1116,9 +1143,8 @@ def main():
         structimpl.append('      }')
         structimpl.append('  }\n')  # end of fill<object>s()
         selectimpl.append('          }')
-        selectimpl.append('        n%s = n;' % objname)
         selectimpl.append('      }')
-
+        selectimpl.append('    %s = n;' % countername)
     structimplall.append('  }')  # end of fillObjects()
     selectimpl.append('  }')  # end of saveObjects()
 

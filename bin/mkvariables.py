@@ -21,6 +21,7 @@
 #               09-Jul-2013 HBP re-order imports to avoid Error message from
 #                           root. Also do not convert names to lower case.
 #               21-Dec-2014 HBP get rid of xml module
+#               03-Dec-2017 HBP add name of leaf counter 
 #$Id: mkvariables.py,v 1.19 2013/07/11 01:54:22 prosper Exp $
 # ----------------------------------------------------------------------------
 import os, sys, re
@@ -51,7 +52,7 @@ try:
     from PhysicsTools.TheNtupleMaker.AutoLoader import *
 except:
     try:
-        gSystem.Load("libtreestream")
+        gSystem.Load("$TREESTREAM_PATH/lib/libtreestream")
     except:
         print "\t** libtreestream not found"
         print '''
@@ -62,7 +63,7 @@ except:
     mkdir -p external/lib
     mkdir -p external/include
     cd external
-    git clone https://github.com/hbprosper/treestream.git
+    git clone http://github.com/hbprosper/treestream.git
 
     then
     cd treestream
@@ -84,12 +85,12 @@ def main():
     # 2nd argument is the TTree name
     if argc > 1:
         # Can have more than one tree
-        treename = joinfields(argv[1:], ' ') 
-        stream = itreestream(filename, treename)
+        treename = joinfields(argv[1:], ' ')
+        stream   = itreestream(filename, treename)     
     else:
-        stream = itreestream(filename)
+        stream = itreestream(filename, "")     
         treename = stream.tree().GetName()
-
+        
     if not stream.good():
         print "\t** hmmmm...something amiss here!"
         sys.exit(0)
@@ -128,12 +129,18 @@ def main():
         iscounter = x[-1] == "*" # look for a leaf counter
         if iscounter: x = x[:-1] # remove "*" from the end
 
+        hascounter = False
+        
         if len(x) == 4:
             a, branch, c, btype = x
             maxcount = 1
         elif len(x) == 5:
             a, branch, c, btype, maxcount = x
-            maxcount = atoi(maxcount[1:-1])
+            maxcount = 1 + 2*atoi(maxcount[1:-1])
+        elif len(x) == 7:
+            hascounter = True
+            a, branch, c, btype, maxcount, d, countername = x
+            maxcount = 1 + 2*atoi(maxcount[1:-1])
         else:
             print "\t**hmmm...not sure what to do with:\n\t%s\n\tchoi!" % x
             sys.exit(0)
@@ -145,19 +152,11 @@ def main():
             btype = vtype[0] # vector type
             maxcount = 100   # default maximum count for vectors
 
-## 		# fix a few types
-## 		if btype[:-2] in ["32", "64"]:
-## 			btype = btype[:-2]
-## 		elif btype == "bool":
-## 			btype = "int"
-## 		elif btype == "uchar":
-## 			btype = "int"
-## 		elif btype == "uint":
-## 			btype = "int"
-
         # If this is leaf counter, add " *" to end of record
         if iscounter:
             lc = " *"
+        elif hascounter:
+            lc = countername
         else:
             lc = ""
 

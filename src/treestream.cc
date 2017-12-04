@@ -42,6 +42,7 @@
 //                      directly.
 //          22-Nov-2010 HBP allow reading of multiple trees
 //          22-Nov-2011 HBP handle reading/storing of strings
+//          03-Dec-2017 HBP write out leaf counter name in listing.
 //$Revision: 1.7 $
 //----------------------------------------------------------------------------
 #ifdef PROJECT_NAME
@@ -935,7 +936,8 @@ itreestream::itreestream()
     _buffer(vector<double>(1000)),
     data(Data()),
     selecteddata(SelectedData()),
-    _delete(true)
+    _delete(true),
+    _treename("")
 {}
 
 itreestream::itreestream(string filename_, int bufsize)
@@ -949,7 +951,8 @@ itreestream::itreestream(string filename_, int bufsize)
     _buffer(vector<double>(bufsize)),
     data(Data()),
     selecteddata(SelectedData()),
-    _delete(true)
+    _delete(true),
+    _treename("")
 {
   vector<string> fname;
   split(filename_, fname);
@@ -968,7 +971,8 @@ itreestream::itreestream(vector<string>& fname, int bufsize)
     _buffer(vector<double>(bufsize)),
     data(Data()),
     selecteddata(SelectedData()),
-    _delete(true)
+    _delete(true),
+    _treename("")
 {
   vector<string> tname;
   _open(fname, tname);
@@ -985,7 +989,8 @@ itreestream::itreestream(string filename_, string treename, int bufsize)
     _buffer(vector<double>(bufsize)),
     data(Data()),
     selecteddata(SelectedData()),
-    _delete(true)
+    _delete(true),
+    _treename("")
 {
   vector<string> fname;
   split(filename_, fname);
@@ -1005,7 +1010,8 @@ itreestream::itreestream(vector<string>& fname, string treename, int bufsize)
     _buffer(vector<double>(bufsize)),
     data(Data()),
     selecteddata(SelectedData()),
-    _delete(true)
+    _delete(true),
+    _treename("")
 {
   vector<string> tname;
   split(treename, tname);
@@ -1039,8 +1045,11 @@ itreestream::_open(vector<string>& fname, vector<string>& tname)
 
   _buffer.clear();
 
-  string treename("");
-  if ( tname.size() > 0 ) treename = tname[0];
+  
+  if ( tname.size() > 0 )
+    _treename = tname[0];
+  else
+    _treename = string("");  
 
   // If tree pointer is zero, get tree from file
   if ( _tree == 0 )
@@ -1079,32 +1088,28 @@ itreestream::_open(vector<string>& fname, vector<string>& tname)
         fatal("itreestream - unable to open file " + filepath[0]);
       file_->cd();
       
-      if ( treename == "" )
+      if ( _treename == "" )
         {      
           // ----------------------------------------
           // No tree name was given. Here is the default
-          // action: If one of the trees is called 
-          // Events then use it and warn user. If not,
-          // use the first tree and warn user.
+          // action: Use the first tree found and warn
+	  // user.
           // ----------------------------------------
-          _tree = 0; // make sure to zero
-          
-	  treename = _gettree(file_);
-
+	  _gettree(file_);
           if ( ! _tree )
             fatal("itreestream - NO tree found in file " + filepath[0]);
           
-          cout << endl << "** NB. itreestream - using tree: " 
-               << treename << endl << endl;
+          cout << "** NB. itreestream - using tree: " 
+               << _treename << endl;
         }
       else
         {
-          _tree = (TTree*)file_->Get(treename.c_str());
+          _tree = (TTree*)file_->Get(_treename.c_str());
           if ( ! _tree )
             fatal("itreestream - NO tree found in file " + filepath[0]);
         }
       
-      string message("itreestream::ctor - treename: " + treename);
+      string message("itreestream::ctor - treename: " + _treename);
       DBUG(message, 2);
 
       // Remember to close file. It will be re-opened as part of a
@@ -1120,7 +1125,7 @@ itreestream::_open(vector<string>& fname, vector<string>& tname)
       // WARNING: This might be slow for large chains. 
       
       DBUG("itreestream::ctor - new TChain", 2);
-      _chain = new TChain(treename.c_str());
+      _chain = new TChain(_treename.c_str());
       if ( ! _chain ) fatal("itreestream - Unable to create chain");
 
       _chainlist.push_back(_chain);
@@ -1211,37 +1216,64 @@ itreestream::~itreestream()
   close();
 }
 
-string
-itreestream::_gettree(TDirectory* dir, string treename, int depth)
+void
+itreestream::_gettree(TDirectory* dir, int depth)
 {
   depth += 1;
-  if ( depth > 5 ) return treename;
-
+  if ( depth > 5 ) return;
+  
   TIter nextkey(dir->GetListOfKeys());          
   while ( TKey* key = (TKey*)nextkey() )
     {
       TObject* o = key->ReadObj();
       if ( o->IsA()->InheritsFrom("TTree") )
 	{
-	  if ( _tree == 0 ) _tree = (TTree*)o; // Record first tree
+	  _tree = dynamic_cast<TTree*>(o);
 	  string tname = string(_tree->GetName());
-          treename += tname;
-
-	  if ( tname == "Events" )
-	    {
-	      // Found a tree called Events, so use it
-	      _tree = (TTree*)o;
-	      break;
-	    }
+          _treename += tname;
+	  return;
 	}
       else if ( o->IsA()->InheritsFrom("TDirectory") )
 	{
-	  treename += string(o->GetName())+"/";
-	  treename = _gettree((TDirectory*)o, treename, depth);
+	  _treename += string(o->GetName())+string("/");
+	  TDirectory* d = dynamic_cast<TDirectory*>(o);
+	  _gettree(d, depth);
 	}
     }
-  return treename;
+  return;
 }
+
+// string
+// itreestream::_gettree(TDirectory* dir, string treename, int depth)
+// {
+//   depth += 1;
+//   if ( depth > 5 ) return treename;
+
+//   TIter nextkey(dir->GetListOfKeys());          
+//   while ( TKey* key = (TKey*)nextkey() )
+//     {
+//       TObject* o = key->ReadObj();
+//       if ( o->IsA()->InheritsFrom("TTree") )
+// 	{
+// 	  if ( _tree == 0 ) _tree = (TTree*)o; // Record first tree
+// 	  string tname = string(_tree->GetName());
+//           treename += tname;
+
+// 	  if ( tname == "Events" )
+// 	    {
+// 	      // Found a tree called Events, so use it
+// 	      _tree = (TTree*)o;
+// 	      break;
+// 	    }
+// 	}
+//       else if ( o->IsA()->InheritsFrom("TDirectory") )
+// 	{
+// 	  treename += string(o->GetName())+"/";
+// 	  treename = _gettree((TDirectory*)o, treename, depth);
+// 	}
+//     }
+//   return treename;
+// }
 // ------------------------------------------------------------------------
 // Get all branches from the root-file, recursively. Create a
 // Field for each branch/leaf. By doing this recursively we do not have 
@@ -1650,11 +1682,12 @@ itreestream::str() const
       if ( leafcounter != 0 )
         {
           // This variable has a leaf counter
-          sprintf(record, "%5d %s \t/ %s (%d)\n",
+          sprintf(record, "%5d %s \t/ %s \t(%d) / %s \n",
                   count,
                   field.fullname.c_str(),
                   field.leaf->GetTypeName(),
-                  leafcounter->GetMaximum());
+                  leafcounter->GetMaximum(),
+		  leafcounter->GetName());
         }
       else
         {

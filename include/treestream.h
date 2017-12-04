@@ -358,11 +358,10 @@ class itreestream
   void _select     (std::string name, void* address, int maxsize, 
                     char srctype, bool isvector=false);
   void _update();
-  std::string _gettree(TDirectory* dir, 
-		       std::string treename="", 
-		       int depth=0);
+  void _gettree(TDirectory* dir, int depth=0);
 
   bool _delete;
+  std::string _treename;
 };
 
 /// Model an output stream of trees of the same species.
