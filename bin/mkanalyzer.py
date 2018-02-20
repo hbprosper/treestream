@@ -21,6 +21,7 @@
 #          08-Jun-2015 HBP - fix makefile (define sharedlib)
 #          13-Feb-2016 HBP - allow possibility to turn on/off branches
 #          03-Dec-2017 HBP - get name of leaf counter from variables.txt
+#          02-Feb-2018 HBP - collect leaf counter branches in one place
 #-----------------------------------------------------------------------------
 import os, sys, re, posixpath
 from string import atof, atoi, replace, lower,\
@@ -806,6 +807,9 @@ def main():
     # Done with header, so loop over branch names
     # and get list of potential struct names (first field of
     # varname.
+    # branchname:  name of branch
+    # varname:     name of associated C++ variable
+    # countername: name of branch that serves as a leaf counter
     # --------------------------------------------------------------------
     records = records[start:]
     tokens = []
@@ -846,12 +850,9 @@ def main():
     skipped = '' # variables that are skipped
     for index, (rtype, branchname, varname, count) in enumerate(tokens):
 
-        # check if current variable is a leaf counter (flagged with an "*")
-        # or contains the name of a leaf counter
+        # check if current variable contains the name of a leaf counter
         t = split(count)
         count = atoi(t[0]) # change type to an integer
-        iscounter   = t[-1] == "*"
-        
         if t[0] != t[-1]:
             countername = t[-1]
         else:
@@ -862,13 +863,12 @@ def main():
             count = int(count + 5*sqrt(count))
             ii = count / 5
             count = (ii+1)*5
-            
+        
         # make sure names are unique. If they aren't bail!
 
         if varmap.has_key(varname):
-            print "** error ** duplicate variable name %s; "\
-            "please fix variables.txt by hand"
-            sys.exit(0)
+            sys.exit("** error ** duplicate variable name %s; "\
+            "please fix variables.txt by hand")
 
         # do something about annoying types
 
@@ -883,10 +883,6 @@ def main():
             skipped += "%s[%d]\n" % (branchname, count)
             continue
 
-        # special handling for Delphes
-        #if find(varname, '_size') > -1:
-        #   varname = 'n%s' % replace(varname, '_size', '')
-
         if rtype == "bool":
             rtype = "int"
         elif rtype == "long64":
@@ -898,36 +894,31 @@ def main():
         elif rtype == "uint":
             rtype = "int"			
 
-
         objname = ''
         fldname = ''
-        # If this is a leaf counter, which happens to have the same name
-        # as a struct, then just ignore for now
-        if iscounter:
-            pass
-        else:            
-            # Get object and field names
-            t = split(varname,'_')
-            if len(t) > 0:
-                # we have at least two fields in varname
-                key = t[0]
-                if structname.has_key(key):
 
-                    # This branch potentially belongs to a struct.
-                    objname = key
-                    # Make sure the count for this branch matches that
-                    # of existing struct
-                    if not usednames.has_key(objname):
-                        usednames[objname] = count;
+        # get object and field names
+        t = split(varname,'_')
+        if len(t) > 0:
+            # we have at least two fields in varname
+            key = t[0]
+            if structname.has_key(key):
 
-                    if usednames[objname] == count:
-                        fldname = replace(varname, '%s_' % objname, '')
-                    else:
-                        objname = ''
-                        fldname = ''
-                    
+                # This branch potentially belongs to a struct.
+                objname = key
+                # Make sure the count for this branch matches that
+                # of existing struct
+                if not usednames.has_key(objname):
+                    usednames[objname] = count;
+
+                if usednames[objname] == count:
+                    fldname = replace(varname, '%s_' % objname, '')
+                else:
+                    objname = ''
+                    fldname = ''
+
         # update map for all variables
-        varmap[varname] = [rtype, branchname, count, iscounter, countername]
+        varmap[varname] = [rtype, branchname, count, countername]
         
         # vector types must have the same object name and a max count > 1
         if count > 1:               
@@ -954,22 +945,25 @@ def main():
     addb      = []
     impl      = []
     choose    = []
-    # first create counters
-    counters = {}
+    
+    # get all leaf counters
+    counters = set()
     for index, varname in enumerate(keys):
-        rtype, branchname, count, iscounter, countername = varmap[varname]
-        if iscounter:
-            #objname = varname[1:] # n<object-name>
-            counters[varname] = branchname
-            addb.append('  output->add("%s", \t%s);' % (branchname, varname))
+        rtype, branchname, count, countername = varmap[varname]
+        if countername == None: continue
+        counters.add(countername)
+    for name in counters:
+        declare.append("  %s\t%s;" % ('int', name))
+        addb.append('  output->add("%s", \t%s);' % (name, name))
+    declare.append('')
     addb.append('')
 
     for index, varname in enumerate(keys):
-        rtype, branchname, count, iscounter, countername = varmap[varname]
+        rtype, branchname, count, countername = varmap[varname]
 
         if macroMode:
-
-            if iscounter:
+            #### FIXME ####
+            if 0:
                 impl.append('  countvalue& v%d = (*varmap)["%s"];'%\
                             (index, branchname))
                 impl.append('  if ( v%d.count )' % index)
@@ -1018,10 +1012,12 @@ def main():
             # this is either a vector or a variable length array
 
             if find(rtype, 'vector') > -1:
+                # VECTOR
                 rtype = isvector.sub("std::vector", rtype)
                 vtype = getvectype.findall(rtype)
                 if len(vtype) == 0:
-                    sys.exit("** error ** unable to extract type from %s for variable %s" % \
+                    sys.exit("** error ** unable to extract type from %s "\
+                                 "for variable %s" % \
                                  (rtype, varname))
                 vtype = vtype[0]
                 
@@ -1029,23 +1025,21 @@ def main():
                 init.append("    %s\t= %s(%d, %s);" % \
                         (varname, rtype, count, vtype))
             else:
+                # VARIABLE LENGTH ARRAY
                 declarevec.append("  std::vector<%s>\t%s;" % (rtype, varname))
                 init.append("    %s\t= std::vector<%s>(%d,0);" % \
                             (varname, rtype, count))
                 if countername == None:
-                    sys.exit("** error ** array %s does not have a leafcounter name" % varname)
-                objname = countername
-                if not counters.has_key(objname):
-                    sys.exit("** error ** need to add leafcounter %s to variables.txt" % objname)
-                branchname += "[%s]" % counters[objname]
+                    sys.exit("** error ** array %s does not have a "\
+                                 "leafcounter name" % varname)
+                branchname += "[%s]" % countername
 
-        if not iscounter:
-            cmd = '  output->add("%s", \t%s);' % (branchname, varname)
-            if len(cmd) < 75:
-                addb.append(cmd)
-            else:            
-                addb.append('  output->add("%s",' % branchname)
-                addb.append('               %s);' % varname)
+        cmd = '  output->add("%s", \t%s);' % (branchname, varname)
+        if len(cmd) < 75:
+            addb.append(cmd)
+        else:            
+            addb.append('  output->add("%s",' % branchname)
+            addb.append('               %s);' % varname)
 
     # Create structs for vector variables
 
@@ -1256,35 +1250,38 @@ def main():
     open(outfilename,"w").write(record)
     
     # write setup.sh
-    record = '''
+    record = '''TNM_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 if [ "$PYTHONPATH" == "" ]; then
-    export PYTHONPATH=$PWD/python
+    export PYTHONPATH=$TNM_PATH/python
 else
-    export PYTHONPATH=$PWD/python:$PYTHONPATH
+    export PYTHONPATH=$TNM_PATH/python:$PYTHONPATH
 fi
 
 if [ "$LD_LIBRARY_PATH" == "" ]; then
-    export LD_LIBRARY_PATH=$PWD/lib
+    export LD_LIBRARY_PATH=$TNM_PATH/lib
 else
-    export LD_LIBRARY_PATH=$PWD/lib:$LD_LIBRARY_PATH
+    export LD_LIBRARY_PATH=$TNM_PATH/lib:$LD_LIBRARY_PATH
 fi
 '''
     outfilename = "%s/setup.sh" % filename
     open(outfilename,"w").write(record)
 
     # Create python program if one does not yet exist
-
+    RED    ="\x1b[0;31;48m"
+    RESETCOLOR ="\x1b[0m"
+    
     outfilename = "%s/%s.py" % (filename, filename)
     if not os.path.exists(outfilename):
         record = PYTEMPLATE % names
         open(outfilename,"w").write(record)
         os.system("chmod +x %s" % outfilename)
 
-    print "\tcreated analysis directory: %s" % filename
-    print "\n\tdo"
-    print "\t\tcd %s" % filename
-    print "\t\tmake"
-    print "\n\tto build shared library libtnm.so\n"
+    fname = '%s%s%s' % (RED, filename, RESETCOLOR)
+    print "\tcreated analysis directory: %s" % fname
+    print "\tdo"
+    print "\t  cd %s" % fname
+    print "\t  make"
+    print "\tto build shared library libtnm.so\n"
 #------------------------------------------------------------------------------
 main()
 

@@ -63,7 +63,7 @@ else
 	LDFLAGS	+= -shared
 	LDEXT	:= .so
 endif	
-LDFLAGS += $(shell root-config --ldflags)
+LDFLAGS += $(shell root-config --ldflags) -Wl,-rpath,$(ROOTSYS)/lib
 LIBS 	:= -lPyROOT $(shell root-config --libs)
 LIBRARY	:= $(libdir)/lib$(NAME)$(LDEXT)
 # ----------------------------------------------------------------------------

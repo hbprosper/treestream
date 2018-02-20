@@ -21,14 +21,14 @@
 #               09-Jul-2013 HBP re-order imports to avoid Error message from
 #                           root. Also do not convert names to lower case.
 #               21-Dec-2014 HBP get rid of xml module
-#               03-Dec-2017 HBP add name of leaf counter 
-#$Id: mkvariables.py,v 1.19 2013/07/11 01:54:22 prosper Exp $
+#               03-Dec-2017 HBP add name of leaf counter
+#               02-Feb-2018 HBP no need to write out leaf counters separately.
 # ----------------------------------------------------------------------------
 import os, sys, re
 from string import atof, atoi, replace, lower,\
      upper, joinfields, split, strip, find
 from time import sleep, ctime
-from ROOT import *
+import ROOT
 # ----------------------------------------------------------------------------
 def usage():
     print '''
@@ -52,7 +52,8 @@ try:
     from PhysicsTools.TheNtupleMaker.AutoLoader import *
 except:
     try:
-        gSystem.Load("$TREESTREAM_PATH/lib/libtreestream")
+        print "\tloading treestream\n"
+        ROOT.gSystem.Load("$TREESTREAM_PATH/lib/libtreestream")
     except:
         print "\t** libtreestream not found"
         print '''
@@ -86,14 +87,14 @@ def main():
     if argc > 1:
         # Can have more than one tree
         treename = joinfields(argv[1:], ' ')
-        stream   = itreestream(filename, treename)     
+        stream   = ROOT.itreestream(filename, treename)     
     else:
-        stream = itreestream(filename, "")     
+        stream   = ROOT.itreestream(filename, "")     
         treename = stream.tree().GetName()
         
     if not stream.good():
-        print "\t** hmmmm...something amiss here!"
-        sys.exit(0)
+        sys.exit("\t** hmmmm...something amiss here!")
+
     # list branches and leaves
     stream.ls()
 
@@ -125,25 +126,24 @@ def main():
         # Fields:
         # .. branch / type [maximum count [*]]
 
-        # look for variables flagged as leaf counters
+        # skip variables flagged as leaf counters
         iscounter = x[-1] == "*" # look for a leaf counter
-        if iscounter: x = x[:-1] # remove "*" from the end
+        if iscounter: continue
 
+        # check if the current branch has a leaf counter
         hascounter = False
-        
         if len(x) == 4:
             a, branch, c, btype = x
             maxcount = 1
         elif len(x) == 5:
             a, branch, c, btype, maxcount = x
-            maxcount = 1 + 2*atoi(maxcount[1:-1])
+            maxcount = atoi(maxcount[1:-1])
         elif len(x) == 7:
             hascounter = True
             a, branch, c, btype, maxcount, d, countername = x
-            maxcount = 1 + 2*atoi(maxcount[1:-1])
+            maxcount = atoi(maxcount[1:-1])
         else:
-            print "\t**hmmm...not sure what to do with:\n\t%s\n\tchoi!" % x
-            sys.exit(0)
+            sys.exit("\t**hmmm...not sure what to do with:\n\t%s\n\tchoi!" % x)
 
         # get branch type in C++ form (not, e.g.,  Double_t)
         btype = replace(lower(btype), "_t", "")
@@ -152,10 +152,7 @@ def main():
             btype = vtype[0] # vector type
             maxcount = 100   # default maximum count for vectors
 
-        # If this is leaf counter, add " *" to end of record
-        if iscounter:
-            lc = " *"
-        elif hascounter:
+        if hascounter:
             lc = countername
         else:
             lc = ""

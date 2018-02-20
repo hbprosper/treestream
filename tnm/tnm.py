@@ -6,10 +6,13 @@ import os, sys, re
 from glob import glob
 from array import array
 from string import split, strip, atoi, atof, replace, joinfields
-from math import *
-from ROOT import *
+from math import sqrt
+import ROOT
 #-----------------------------------------------------------------------------
-gSystem.Load("libtnm")
+TNM_PATH=ROOT.gSystem.ExpandPathName("TNM_PATH")
+print TNM_PATH
+sys.exit()
+ROOT.gSystem.Load("$TNM_PATH/lib/libtnm")
 #-----------------------------------------------------------------------------
 # Hack to suppress harmless warning
 # see: https://root.cern.ch/phpBB3/viewtopic.php?f=14&t=17682
@@ -86,7 +89,7 @@ def expo(x, fmt="%4.2f", code="#"):
 class TimeLeft:
     def __init__(self, ntoys):
         self.ntoys = ntoys
-        self.swatch = TStopwatch()
+        self.swatch = ROOT.TStopwatch()
     def __del__(self):
         pass
     def __call__(self, ii):
@@ -111,7 +114,7 @@ class Scribe:
 		self.xpos = xxpos
 		self.ypos = yypos
 		self.linewidth = 1.5*size
-		self.t = TLatex()
+		self.t = ROOT.TLatex()
 		self.t.SetNDC()
 		self.t.SetTextSize(size)
 		self.t.SetTextFont(font)
@@ -326,8 +329,8 @@ def mkpline(xx, y1, y2, boundary, **args):
         else:
             xmin, xmax, ymin, ymax = boundary
 
-	np = gPad.ClipPolygon(np, x, y, npp, xc, yc, xmin, ymin, xmax, ymax)
-	pl = TPolyLine(np, xc, yc)
+	np = ROOT.gPad.ClipPolygon(np, x, y, npp, xc, yc, xmin, ymin, xmax, ymax)
+	pl = ROOT.TPolyLine(np, xc, yc)
 	pl.SetLineColor(color)
 	pl.SetLineWidth(lwidth)
 	pl.SetFillColor(color)
@@ -338,13 +341,13 @@ def mkpline(xx, y1, y2, boundary, **args):
 def mkhist1(hname, xtitle, ytitle, nbins, xmin, xmax, **args):
 	ymin   = getarg(args, 'ymin', None)
 	ymax   = getarg(args, 'ymax', None)
-	color  = getarg(args, 'color',   kBlack)
+	color  = getarg(args, 'color',   ROOT.kBlack)
 	lstyle = getarg(args, 'lstyle',  1)
 	lwidth = getarg(args, 'lwidth',  1)
 	ndivx  = getarg(args, 'ndivx',   505)
 	ndivy  = getarg(args, 'ndivy',   510)
 
-	h = TH1F(hname, "", nbins, xmin, xmax)		
+	h = ROOT.TH1F(hname, "", nbins, xmin, xmax)		
 	h.SetLineColor(color)
 	h.SetLineStyle(lstyle)
 	h.SetLineWidth(lwidth)
@@ -368,13 +371,13 @@ def mkhist1(hname, xtitle, ytitle, nbins, xmin, xmax, **args):
 def mkhist2(hname, xtitle, ytitle,
 	    nbinx, xmin, xmax,	
 	    nbiny, ymin, ymax, **args):
-	color  = getarg(args, 'color',   kBlack)
+	color  = getarg(args, 'color',   ROOT.kBlack)
 	mstyle = getarg(args, 'mstyle',  20)
 	msize  = getarg(args, 'msize',   0.5)
 	ndivx  = getarg(args, 'ndivx',   505)
 	ndivy  = getarg(args, 'ndivy',   505)
 	
-	h = TH2F(hname, "", nbinx, xmin, xmax, nbiny, ymin, ymax)
+	h = ROOT.TH2F(hname, "", nbinx, xmin, xmax, nbiny, ymin, ymax)
 	h.SetLineColor(color)
 	h.SetMarkerColor(color)
 	h.SetMarkerSize(msize)
@@ -391,7 +394,7 @@ def mkhist2(hname, xtitle, ytitle,
 	h.SetNdivisions(ndivy, "Y")
 	return h
 def fixhist2(h, xtitle=None, ytitle=None, **args):
-	color  = getarg(args, 'color',   kBlack)
+	color  = getarg(args, 'color',   ROOT.kBlack)
 	mstyle = getarg(args, 'mstyle',  20)
 	msize  = getarg(args, 'msize',   0.5)
 	ndivx  = getarg(args, 'ndivx',   505)
@@ -413,7 +416,7 @@ def fixhist2(h, xtitle=None, ytitle=None, **args):
 def mkgraph(x, y, xtitle, ytitle, xmin, xmax, **args):
 	ymin   = getarg(args, 'ymin', None)
 	ymax   = getarg(args, 'ymax', None)
-	color  = getarg(args, 'color',   kBlack)
+	color  = getarg(args, 'color',   ROOT.kBlack)
 	lstyle = getarg(args, 'lstyle',  1)
 	lwidth = getarg(args, 'lwidth',  1)
 	msize  = getarg(args, 'msize',   0.5)
@@ -423,7 +426,7 @@ def mkgraph(x, y, xtitle, ytitle, xmin, xmax, **args):
 	name   = getarg(args, 'name', None)
 
 	if y == None:
-		g = TGraph()
+		g = ROOT.TGraph()
 	else:
 		n = len(y)
 		xx = x
@@ -435,7 +438,7 @@ def mkgraph(x, y, xtitle, ytitle, xmin, xmax, **args):
 			yy = array('d')
 			for i in range(n): yy.append(y[i])
 
-		g = TGraph(n, xx, yy)
+		g = ROOT.TGraph(n, xx, yy)
 
 	if name != None: g.SetName(name)
 	
@@ -462,7 +465,7 @@ def mkgraph(x, y, xtitle, ytitle, xmin, xmax, **args):
 def mkgraphErrors(x, y, ex, ey, xtitle, ytitle, xmin, xmax, **args):
 	ymin   = getarg(args, 'ymin', None)
 	ymax   = getarg(args, 'ymax', None)
-	color  = getarg(args, 'color',   kBlack)
+	color  = getarg(args, 'color',   ROOT.kBlack)
 	lstyle = getarg(args, 'lstyle',  1)
 	lwidth = getarg(args, 'lwidth',  1)
 	ndivx  = getarg(args, 'ndivx',   505)
@@ -487,7 +490,7 @@ def mkgraphErrors(x, y, ex, ey, xtitle, ytitle, xmin, xmax, **args):
 		eyy = array('d')
 		for i in range(n): eyy.append(ey[i])
 
-	g = TGraphErrors(n, xx, yy, exx, eyy)
+	g = ROOT.TGraphErrors(n, xx, yy, exx, eyy)
 		
 	g.SetLineColor(color)
 	g.SetLineStyle(lstyle)
@@ -518,7 +521,7 @@ def mkcdf(hist, minbin=1):
 	c[j] = hist.Integral()
 	return c
 
-def mkroc(name, hsig, hbkg, lcolor=kBlue, lwidth=2, ndivx=505, ndivy=505):
+def mkroc(name, hsig, hbkg, lcolor=ROOT.kBlue, lwidth=2, ndivx=505, ndivy=505):
 	from array import array
 	csig = mkcdf(hsig)
 	cbkg = mkcdf(hbkg)
@@ -528,7 +531,7 @@ def mkroc(name, hsig, hbkg, lcolor=kBlue, lwidth=2, ndivx=505, ndivy=505):
 	for i in xrange(npts):
 		esig.append(1 - csig[npts-1-i])
 		ebkg.append(1 - cbkg[npts-1-i])
-	g = TGraph(npts, ebkg, esig)
+	g = ROOT.TGraph(npts, ebkg, esig)
 	g.SetName(name)
 	g.SetLineColor(lcolor)
 	g.SetLineWidth(lwidth)
@@ -544,7 +547,7 @@ def mkroc(name, hsig, hbkg, lcolor=kBlue, lwidth=2, ndivx=505, ndivy=505):
 	return g
 
 def mklegend(xx, yy, xw, yw):
-	lg = TLegend(xx, yy, xx+xw, yy+yw)
+	lg = ROOT.TLegend(xx, yy, xx+xw, yy+yw)
 	lg.SetFillColor(kWhite)
 	lg.SetTextFont(TEXTFONT)
 	lg.SetBorderSize(0)
@@ -608,13 +611,13 @@ class Table:
 	
 	def __init__(self, filename, nrows=-1):
 		try:
-			file = open(filename, 'r')
+			tfile = open(filename, 'r')
 		except:
 			print "*** can't read file %s" % filename
 			sys.exit(0)
 
 		# Read header
-		records = file.readlines()
+		records = tfile.readlines()
 		header  = split(records[0])
 		self.header = header
 		
@@ -629,7 +632,7 @@ class Table:
 			if nrows > 0:
 				if row >= nrows:
 					break
-		file.close()
+		tfile.close()
 
 		# Initialize row counter
 		self.row = 0
@@ -732,7 +735,7 @@ class Ntuple:
                     return
                 
 		# create a chain of files
-		self.chain = TChain(treename)
+		self.chain = ROOT.TChain(treename)
 		if not self.chain:
 			print "*** Ntuple *** can't create chain %s" % treename
 			sys.exit(0)
@@ -1078,7 +1081,7 @@ class BDT:
         
         if node == None:
             hname = "%s%5.5d" % (hname, itree)
-            self.hplot = TH2Poly(hname, "", xmin, xmax, ymin, ymax)
+            self.hplot = ROOT.TH2Poly(hname, "", xmin, xmax, ymin, ymax)
             self.hplot.GetXaxis().SetTitle(xtitle)
             self.hplot.GetYaxis().SetTitle(ytitle)
             self.hplot.GetYaxis().SetTitleOffset(1.6)
@@ -1123,19 +1126,23 @@ class BDT:
             # left
             xmax1= xmax
             xmax = value
-            self.plot(itree, hname, xtitle, ytitle, xmin, xmax, ymin, ymax, useValue, node.left)
+            self.plot(itree, hname, xtitle, ytitle, xmin, xmax, ymin, ymax,
+                          useValue, node.left)
             # right
             xmax = xmax1
             xmin = value
-            self.plot(itree, hname, xtitle, ytitle, xmin, xmax, ymin, ymax, useValue, node.right)
+            self.plot(itree, hname, xtitle, ytitle, xmin, xmax, ymin, ymax,
+                          useValue, node.right)
         else:
             # left
             ymax1 = ymax
             ymax = value
-            self.plot(itree, hname, xtitle, ytitle, xmin, xmax, ymin, ymax, useValue, node.left)
+            self.plot(itree, hname, xtitle, ytitle, xmin, xmax, ymin, ymax,
+                          useValue, node.left)
             # right
             ymax = ymax1
             ymin = value
-            self.plot(itree, hname, xtitle, ytitle, xmin, xmax, ymin, ymax, useValue, node.right)
+            self.plot(itree, hname, xtitle, ytitle, xmin, xmax, ymin, ymax,
+                          useValue, node.right)
         return self.hplot
 
