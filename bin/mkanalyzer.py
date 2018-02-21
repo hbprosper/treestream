@@ -22,6 +22,8 @@
 #          13-Feb-2016 HBP - allow possibility to turn on/off branches
 #          03-Dec-2017 HBP - get name of leaf counter from variables.txt
 #          02-Feb-2018 HBP - collect leaf counter branches in one place
+#          21-Feb-2018 HBP - fix Makefile to account for changes in how
+#                            ROOT and Mac OS treat environment variables
 #-----------------------------------------------------------------------------
 import os, sys, re, posixpath
 from string import atof, atoi, replace, lower,\
@@ -586,8 +588,8 @@ CPPFLAGS:= -I. -I$(incdir) -I$(srcdir) $(shell root-config --cflags)
 CXXFLAGS:= -c -g -O2 -ansi -Wall -pipe -fPIC
 
 #	C++ Linker
-#   set default path to shared library
-LD	:= $(LINK) -Wl,-rpath,$(PWD)/$(libdir)
+#   set path to ROOT libraries (Mac OS workaround)
+LD	:= $(LINK) -Wl,-rpath,$(ROOTSYS)/lib
 
 OS	:= $(shell uname -s)
 ifeq ($(OS),Darwin)
@@ -1250,18 +1252,11 @@ def main():
     open(outfilename,"w").write(record)
     
     # write setup.sh
-    record = '''TNM_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-if [ "$PYTHONPATH" == "" ]; then
-    export PYTHONPATH=$TNM_PATH/python
-else
-    export PYTHONPATH=$TNM_PATH/python:$PYTHONPATH
-fi
-
-if [ "$LD_LIBRARY_PATH" == "" ]; then
-    export LD_LIBRARY_PATH=$TNM_PATH/lib
-else
-    export LD_LIBRARY_PATH=$TNM_PATH/lib:$LD_LIBRARY_PATH
-fi
+    record = '''DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+export TNM_PATH=$DIR
+export PYTHONPATH=$TNM_PATH/python:$PYTHONPATH
+export LD_LIBRARY_PATH=$TNM_PATH/lib:$LD_LIBRARY_PATH
+echo "TNM_PATH=$TNM_PATH"
 '''
     outfilename = "%s/setup.sh" % filename
     open(outfilename,"w").write(record)
