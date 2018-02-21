@@ -90,7 +90,7 @@ else:
 # Make sure that we can find treestream etc.
 
 if not os.path.exists(TREESTREAM_HPP):
-    print "\n** error ** - required file:\n\t%s\n\t\tNOT found!" % \
+    print "\n** error ** - required file:\n%s\nNOT found!" % \
           TREESTREAM_HPP
     print '''
     try installing treestream package:
