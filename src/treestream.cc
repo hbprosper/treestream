@@ -43,6 +43,7 @@
 //          22-Nov-2010 HBP allow reading of multiple trees
 //          22-Nov-2011 HBP handle reading/storing of strings
 //          03-Dec-2017 HBP write out leaf counter name in listing.
+//          21-Feb-2018 HBP fix getenv call
 //$Revision: 1.7 $
 //----------------------------------------------------------------------------
 #ifdef PROJECT_NAME
@@ -109,7 +110,7 @@ namespace
 
   void DBUG(string message, int level=1)
   {
-    if ( getenv("DBtreestream") > 0 )
+    if ( getenv("DBtreestream") != (char*)0 )
       DEBUGLEVEL = atoi(getenv("DBtreestream"));
     else
       DEBUGLEVEL = 0;
