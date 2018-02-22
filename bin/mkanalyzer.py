@@ -24,6 +24,7 @@
 #          02-Feb-2018 HBP - collect leaf counter branches in one place
 #          21-Feb-2018 HBP - fix Makefile to account for changes in how
 #                            ROOT and Mac OS treat environment variables
+#                          - protect against zero maxcount
 #-----------------------------------------------------------------------------
 import os, sys, re, posixpath
 from string import atof, atoi, replace, lower,\
@@ -865,8 +866,9 @@ def main():
             count = int(count + 5*sqrt(count))
             ii = count / 5
             count = (ii+1)*5
-        elif count == 0:
+        elif count < 1:
             count = 100
+            tokens[index][-1] = '%d' % count
         
         # make sure names are unique. If they aren't bail!
 
@@ -934,7 +936,7 @@ def main():
 
                 if not vectormap.has_key(objname): vectormap[objname] = []	
                 vectormap[objname].append((rtype, fldname, varname, count, countername))
-                #print "%s.%s (%s)" % (objname, fldname, count)
+                print "%s.%s (%s)" % (objname, fldname, count)
 
     if skipped != "":
         open("variables_skipped.txt", "w").write(skipped)
@@ -1014,7 +1016,6 @@ def main():
 
         else:
             # this is either a vector or a variable length array
-
             if find(rtype, 'vector') > -1:
                 # VECTOR
                 rtype = isvector.sub("std::vector", rtype)
