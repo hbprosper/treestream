@@ -865,6 +865,8 @@ def main():
             count = int(count + 5*sqrt(count))
             ii = count / 5
             count = (ii+1)*5
+        elif count == 0:
+            count = 100
         
         # make sure names are unique. If they aren't bail!
 
