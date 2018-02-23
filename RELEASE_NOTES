@@ -1,3 +1,7 @@
+V1_1_0
+------
+	1. Allow reading of multiple trees.
+	2. Modify mkvariables and mkanalyzer to make use of 1.
 V1_0_2
 ------
 	1. Improve Makefile

@@ -1,6 +1,17 @@
 treestream
 =======
-A simple interface to Root files containing simple trees.
+A simple interface to Root files containing simple trees. We recommend
+that you create a directory called __external__ in your home directory,
+as shown below to contain all external packages, and install
+__treestream__ in that directory.  You must 
+define the *environment*  variable __EXTERNAL__, which must point to the
+directory in which  __treestream__ has been installed. Assuming you
+have installed this package in __external__ as recommended, do 
+
+	export EXTERNAL=$HOME/external
+
+You may wish to add this command to your __.bash_profile__, which is a hidden
+file in your home directory. The above command is given for a bash shell.
 
 INSTALLATION
 
