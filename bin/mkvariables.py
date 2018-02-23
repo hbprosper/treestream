@@ -23,6 +23,7 @@
 #               21-Dec-2014 HBP get rid of xml module
 #               03-Dec-2017 HBP add name of leaf counter
 #               02-Feb-2018 HBP no need to write out leaf counters separately.
+#               22-Feb-2018 HBP adapt to improved treestream listing
 # ----------------------------------------------------------------------------
 import os, sys, re
 from string import atof, atoi, replace, lower,\
@@ -31,21 +32,13 @@ from time import sleep, ctime
 import ROOT
 # ----------------------------------------------------------------------------
 def usage():
-    print '''
-mkvariables.py <ntuple-filename> [<tree-name> [<tree-name2...]]
-    '''
-    sys.exit(0)
+    sys.exit('''
+    Usage:
+      mkvariables.py [options] <ntuple-filename> [<tree-name> [<tree-name2...]]
 
-# get command line arguments
-argv = sys.argv[1:]
-argc = len(argv)
-if argc < 1: usage()
-
-# get ntuple file name
-filename = argv[0]
-if not os.path.exists(filename):
-    print "\t** file %s not found" % filename
-    sys.exit(0)
+    Options:
+      --usetree   Use the treename(s) as struct names
+    ''')
 # ----------------------------------------------------------------------------
 # load treestream module
 try:
@@ -82,19 +75,43 @@ genname  = re.compile('^(gen[a-z]+|edm[a-z]+)')
 countname= re.compile('(?<=^n)(pat|reco)')
 # ----------------------------------------------------------------------------
 def main():
+    # get command line arguments
+    argv = sys.argv[1:]
+    argc = len(argv)
+    if argc < 1: usage()
 
+    # check whether to use treename as struct name
+    if '--usetree' in argv:
+        argv.remove('--usetree')
+        usetree = True
+        argc   -= 1
+    else:
+        usetree = False
+        
+    # get ntuple file name
+    filename = argv[0]
+    if not os.path.exists(filename):
+        sys.exit("\t** file %s not found" % filename)
+        
     # 2nd argument is the TTree name
     if argc > 1:
         # Can have more than one tree
         treename = joinfields(argv[1:], ' ')
-        stream   = ROOT.itreestream(filename, treename)     
+        print treename
+        stream   = ROOT.itreestream(filename, treename)
+        if not stream.good():
+            sys.exit("\t** hmmmm...something amiss here!")
+    
+        treenames= stream.treenames();
+        tname    = [ x for x in treenames ]
     else:
-        stream   = ROOT.itreestream(filename, "")     
-        treename = stream.tree().GetName()
+        stream   = ROOT.itreestream(filename, "")
+        if not stream.good():
+            sys.exit("\t** hmmmm...something amiss here!" )
         
-    if not stream.good():
-        sys.exit("\t** hmmmm...something amiss here!")
-
+        treename = stream.tree().GetName()
+        tname    = split(treename)
+        
     # list branches and leaves
     stream.ls()
 
@@ -102,15 +119,14 @@ def main():
     print
     print "==> file: %s" % filename
 
-    tname = split(treename)
     for name in tname:
         print "==> tree: %s" % name
     print "==> output: variables.txt"
 
     out = open("variables.txt", "w")
-    out.write("tree: %s\t%s\n" % (tname[0], ctime()))
+    out.write("Tree %s\t%s\n" % (tname[0], ctime()))
     for name in tname[1:]:
-        out.write("tree: %s\n" % name)
+        out.write("Tree %s\n" % name)
     out.write("\n")
 
     # get ntuple listing
@@ -121,7 +137,7 @@ def main():
 
         # skip junk
         if len(x) == 0: continue
-        if x[0] in ["Tree", "Number", ""]: continue
+        if x[0] in ["File", "Tree", "Entries", ""]: continue
 
         # Fields:
         # .. branch / type [maximum count [*]]
@@ -191,10 +207,18 @@ def main():
         # first strip away namespace
         t[0] = namespace.sub("", t[0])
         name = joinfields(t, '_')
-        #print "%s\t%s" % (t[0], bname)
 
+        # check whether to include treename in name
+        if find(name, '/') > 0:
+            t = split(name, '/')
+            # this name contains a tree name
+            if usetree:
+                name = '%s_%s' % (t[0], t[-1])
+            else:
+                name = t[-1]
+        
         # write out info for current branch/leaf
-        record = "%s/%s/%s/%d %s\n" % (btype, branch, name, maxcount, lc)
+        record = "%s\t%s\t%s %d %s\n" % (btype, branch, name, maxcount, lc)
         out.write(record)
 # ----------------------------------------------------------------------------
 main()

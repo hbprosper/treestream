@@ -778,22 +778,17 @@ def main():
     else:
         varfilename = "variables.txt"
     if not os.path.exists(varfilename):
-        print "mkanalyzer.py - can't find variable file: %s" % varfilename
-        sys.exit(0)
-
+        sys.exit("mkanalyzer.py - can't find variable file: %s" % varfilename)
 
     # Check for macro mode
     macroMode = argc > 2
 
-
     # Read variable names
-
     records = map(strip, open(varfilename, "r").readlines())
 
     # Get tree name(s)
-
     t = split(records[0])
-    if lower(t[0]) == "tree:":
+    if lower(t[0]) == "tree":
         treename = t[1]
     else:
         treename = "Events"
@@ -802,10 +797,13 @@ def main():
         record = strip(record)
         if record == "": break
         t = split(record)
-        if lower(t[0]) == "tree:":
+        if lower(t[0]) == "tree":
             treename += " %s" % t[1]
             start += 1
 
+    # check whether we have a single tree
+    single_tree = len(split(treename)) == 1
+    
     # --------------------------------------------------------------------
     # Done with header, so loop over branch names
     # and get list of potential struct names (first field of
@@ -823,12 +821,9 @@ def main():
 
         # split record into its fields
         # varname = variable name as determined by mkvariables.py
-
-        tokens.append(split(record, '/'))
-
-        # note: count may include name of leafcounter or "*"
-        rtype, branchname, varname, count = tokens[-1]
-
+        tokens.append(split(record))
+        varname = tokens[-1][2]
+            
         # varname should have the format
         # <objname>_<field-name>
         t = split(varname,'_')
@@ -851,16 +846,18 @@ def main():
     vectormap = {}
 
     skipped = '' # variables that are skipped
-    for index, (rtype, branchname, varname, count) in enumerate(tokens):
+    for index, tns in enumerate(tokens):
 
-        # check if current variable contains the name of a leaf counter
-        t = split(count)
-        count = atoi(t[0]) # change type to an integer
-        if t[0] != t[-1]:
-            countername = t[-1]
+        # check for leafcounter
+        has_leafcounter = len(tns) == 5
+        if has_leafcounter:
+            rtype, branchname, varname, count, countername = tns
         else:
+            rtype, branchname, varname, count = tns
             countername = None
 
+        # set up count
+        count = atoi(count) # change type to an integer
         if count > 1:
             from math import sqrt
             count = int(count + 5*sqrt(count))
@@ -868,7 +865,7 @@ def main():
             count = (ii+1)*5
         elif count < 1:
             count = 100
-            tokens[index][-1] = '%d' % count
+        tokens[index][3] = '%d' % count
         
         # make sure names are unique. If they aren't bail!
 
@@ -936,7 +933,7 @@ def main():
 
                 if not vectormap.has_key(objname): vectormap[objname] = []	
                 vectormap[objname].append((rtype, fldname, varname, count, countername))
-                print "%s.%s (%s)" % (objname, fldname, count)
+                #print "%s.%s (%s)" % (objname, fldname, count)
 
     if skipped != "":
         open("variables_skipped.txt", "w").write(skipped)
@@ -1002,8 +999,12 @@ def main():
                 impl.append('    %s.clear();' % varname)
                 impl.append('')
 
-        choose.append('  choose["%s"]\t= DEFAULT;' % branchname)
-        setb.append('  if ( choose["%s"] )'   % branchname)
+        if single_tree:
+            choosename = split(branchname, '/')[-1]
+        else:
+            choosename = branchname
+        choose.append('  choose["%s"]\t= DEFAULT;' % choosename)
+        setb.append('  if ( choose["%s"] )'   % choosename)
         cmd = '    input->select("%s", \t%s);' % (branchname, varname)
         if len(cmd) < 75:
             setb.append(cmd)

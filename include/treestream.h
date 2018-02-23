@@ -71,17 +71,18 @@
 struct Field
 {
   Field() 
-    : srctype(' '),
-      iotype(' '),
-      isvector(false),
-      iscounter(false),
-      maxsize(0),
-      branch(0),
-      leaf(0),
-      address(0),
-      branchname(""),
-      leafname(""),
-      fullname("")
+  : srctype(' '),
+    iotype(' '),
+    isvector(false),
+    iscounter(false),
+    maxsize(0),
+    branch(0),
+    leaf(0),
+    address(0),
+    treename(""),
+    branchname(""),
+    leafname(""),
+    fullname("")
   {}
   
   virtual ~Field() {}
@@ -95,7 +96,8 @@ struct Field
   TBranch* branch;        /// Branch pertaining to source
   TLeaf*   leaf;          /// Leaf pertaining to source
   void*    address;       /// Source address
-  
+
+  std::string treename;   /// Tree name
   std::string branchname; /// Name of branch
   std::string leafname;   /// Name of T-leaf!
   std::string fullname;   /// Full name of branch/T-leaf!
@@ -307,6 +309,9 @@ class itreestream
   /// Return names of name/value pairs.
   std::vector<std::string> names();
 
+  /// Return names of trees.
+  std::vector<std::string> treenames();
+
   ///
   std::vector<double> vget();
 
@@ -338,8 +343,8 @@ class itreestream
   int     _index;
   std::vector<double> _buffer;
 
-  Data         data;
-  SelectedData selecteddata;
+  Data          data;
+  SelectedData  selecteddata;
   
   int     _bufoffset;
   int     _bufcount;
@@ -358,10 +363,11 @@ class itreestream
   void _select     (std::string name, void* address, int maxsize, 
                     char srctype, bool isvector=false);
   void _update();
-  void _gettree(TDirectory* dir, int depth=0);
+  void _gettree(TDirectory* dir, int depth=0, std::string name="");
 
   bool _delete;
   std::string _treename;
+  std::vector<std::string>  _treenames;
 };
 
 /// Model an output stream of trees of the same species.
@@ -524,7 +530,7 @@ class otreestream
   std::vector<double> _databuf;
   int    _autosavecount;
 
-  SelectedData selecteddata;
+  std::map<std::string, Field*> selecteddata;
 
   std::vector<std::string>      branchname;
   std::vector<int*> strsize;
