@@ -844,7 +844,7 @@ def main():
     usednames = {}
     varmap    = {}
     vectormap = {}
-
+    varnum    = 1
     skipped = '' # variables that are skipped
     for index, tns in enumerate(tokens):
 
@@ -870,9 +870,11 @@ def main():
         # make sure names are unique. If they aren't bail!
 
         if varmap.has_key(varname):
-            sys.exit("** error ** duplicate variable name %s; "\
-            "please fix variables.txt by hand")
-
+            varnum += 1
+            print "** warning ** duplicate name %s; "\
+            "changed to %s%d" % (varname, varname, varnum)
+            varname = '%s%d' % (varname, varnum)
+            
         # do something about annoying types
 
         if find(varname, '[') > -1 and count > 1:
