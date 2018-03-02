@@ -948,45 +948,6 @@ itreestream::itreestream()
     _treenames(vector<string>())
 {}
 
-itreestream::itreestream(string filename_, int bufsize)
-  : _tree(0),
-    _chain(0),
-    _statuscode(kSUCCESS),
-    _current(-1),
-    _entries(0),
-    _entry(0),
-    _index(0),
-    _buffer(vector<double>(bufsize)),
-    data(Data()),
-    selecteddata(SelectedData()),
-    _delete(true),
-    _treename(""),
-    _treenames(vector<string>())
-{
-  vector<string> fname;
-  split(filename_, fname);
-  vector<string> tname;
-  _open(fname, tname);
-}
-
-itreestream::itreestream(vector<string>& fname, int bufsize)
-  : _tree(0),
-    _chain(0),
-    _statuscode(kSUCCESS),
-    _current(-1),
-    _entries(0),
-    _entry(0),
-    _index(0),
-    _buffer(vector<double>(bufsize)),
-    data(Data()),
-    selecteddata(SelectedData()),
-    _delete(true),
-    _treename(""),
-    _treenames(vector<string>())
-{
-  vector<string> tname;
-  _open(fname, tname);
-}
 
 itreestream::itreestream(string filename_, string treename, int bufsize)
   : _tree(0),
@@ -1006,7 +967,8 @@ itreestream::itreestream(string filename_, string treename, int bufsize)
   vector<string> fname;
   split(filename_, fname);
   vector<string> tname;
-  split(treename, tname);
+  if ( treename != "" )
+    split(treename, tname);
   _open(fname, tname);
 }
 
@@ -1026,7 +988,8 @@ itreestream::itreestream(vector<string>& fname, string treename, int bufsize)
     _treenames(vector<string>())    
 {
   vector<string> tname;
-  split(treename, tname);
+  if ( treename != "" )
+    split(treename, tname);
   _open(fname, tname);
 }
 
@@ -1060,7 +1023,6 @@ itreestream::_open(vector<string>& fname, vector<string>& tname)
 
   _buffer.clear();
 
-  
   if ( tname.size() > 0 )
     _treename = tname[0];
   else
@@ -1085,11 +1047,12 @@ itreestream::_open(vector<string>& fname, vector<string>& tname)
           globfree(&g);
         }
 #else
-     for (unsigned int j=0; j < fname.size(); ++j){
-       filepath.push_back(fname[j]);
-     }
+     for (size_t j=0; j < fname.size(); ++j)
+       {
+	 filepath.push_back(fname[j]);
+       }
 #endif
-      DBUG("itreestream::ctor - TFile::Open ", 2);
+      DBUG("itreestream::ctor - TFile::Open ");
   
       // ----------------------------------------
       // Open first file
@@ -1098,17 +1061,22 @@ itreestream::_open(vector<string>& fname, vector<string>& tname)
       if ( ! file_ || (file_ != 0 && ! file_->IsOpen()) )
         fatal("itreestream - unable to open file " + filepath[0]);
       file_->cd();
-      
+
+
       // get all tree names
+      DBUG("itreestream::ctor - before _gettree");
       _gettree(file_);
+      DBUG("itreestream::ctor - after _gettree");
       
       if ( _treename == "" )
-        {      
+        {
           // ----------------------------------------
           // No tree name was given. Here is the default
           // action: Use the first tree found and warn
 	  // user.
           // ----------------------------------------
+	  tname.resize(1);
+	  tname[0]  = _treenames[0];
 	  _treename = _treenames[0];
 	  _tree = (TTree*)file_->Get(_treename.c_str());
           if ( ! _tree )
@@ -1128,20 +1096,22 @@ itreestream::_open(vector<string>& fname, vector<string>& tname)
 	}
       else
         {
+	  tname.resize(1);
+	  tname[0] = _treename;
           _tree = (TTree*)file_->Get(_treename.c_str());
           if ( ! _tree )
             fatal("itreestream - NO tree found in file " + filepath[0]);
         }
       
       string message("itreestream::ctor - treename: " + _treename);
-      DBUG(message, 2);
+      DBUG(message);
 
       // Remember to close file. It will be re-opened as part of a
       // chain.
 
       file_->Close();
       
-      DBUG("itreestream::ctor - after file->Close", 2);
+      DBUG("itreestream::ctor - after file->Close");
 
       // ----------------------------------------
       // Create a chain of files
@@ -1246,7 +1216,8 @@ itreestream::_gettree(TDirectory* dir, int depth, string dirname)
 {
   depth += 1;
   if ( depth > 5 ) return;
-  
+
+  DBUG("gettree(entered)");
   TIter nextkey(dir->GetListOfKeys());          
   while ( TKey* key = (TKey*)nextkey() )
     {
@@ -1255,10 +1226,13 @@ itreestream::_gettree(TDirectory* dir, int depth, string dirname)
 	{
 	  _tree = dynamic_cast<TTree*>(o);
 	  _treenames.push_back(dirname + string(_tree->GetName()));
+	  DBUG("gettree - tree: " + string(_tree->GetName()));
 	}
       else if ( o->IsA()->InheritsFrom("TDirectory") )
 	{
 	  TDirectory* d = dynamic_cast<TDirectory*>(o);
+	  DBUG("gettree - dir: " + string(d->GetName()));
+	  
 	  if ( depth == 1 )
 	    dirname  = string(d->GetName()) + "/";
 	  else

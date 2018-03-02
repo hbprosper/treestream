@@ -1268,7 +1268,7 @@ echo "TNM_PATH=$TNM_PATH"
     open(outfilename,"w").write(record)
 
     # Create python program if one does not yet exist
-    RED    ="\x1b[0;31;48m"
+    COLOR      ="\x1b[0;32;48m"
     RESETCOLOR ="\x1b[0m"
     
     outfilename = "%s/%s.py" % (filename, filename)
@@ -1277,7 +1277,7 @@ echo "TNM_PATH=$TNM_PATH"
         open(outfilename,"w").write(record)
         os.system("chmod +x %s" % outfilename)
 
-    fname = '%s%s%s' % (RED, filename, RESETCOLOR)
+    fname = '%s%s%s' % (COLOR, filename, RESETCOLOR)
     print "\tcreated analysis directory: %s" % fname
     print "\tdo"
     print "\t  cd %s" % fname

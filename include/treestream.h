@@ -166,16 +166,10 @@ class itreestream
       Note: <i>filename</i> is a string of one of more filenames, each of
       which can have wildcard characters.
   */
-  itreestream(std::string filename, int bufsize=1000);
+  itreestream(std::string filename, std::string treename="", int bufsize=1000);
 
   ///
-  itreestream(std::string filename, std::string treename, int bufsize=1000);
-
-  ///
-  itreestream(std::vector<std::string>& filenames, int bufsize=1000);
-
-  ///
-  itreestream(std::vector<std::string>& filenames, std::string treename,
+  itreestream(std::vector<std::string>& filenames, std::string treename="",
               int bufsize=1000);
 
   ///

@@ -105,13 +105,13 @@ def main():
         treenames= stream.treenames();
         tname    = [ x for x in treenames ]
     else:
-        stream   = ROOT.itreestream(filename, "")
+        stream   = ROOT.itreestream(filename)
         if not stream.good():
             sys.exit("\t** hmmmm...something amiss here!" )
         
         treename = stream.tree().GetName()
         tname    = split(treename)
-        
+
     # list branches and leaves
     stream.ls()
 
