@@ -46,7 +46,7 @@
 //          22-Nov-2010 Allow reading of multiple trees using friend
 //                      mechanism
 //          22-Nov-2011 Handle storing of strings
-//$Revision: 1.5 $
+//          01-Mar-2018 Fix chain/friend interactions (at 35,000 feet!)
 //----------------------------------------------------------------------------
 #include <vector>
 #include <string>
@@ -76,6 +76,7 @@ struct Field
     isvector(false),
     iscounter(false),
     maxsize(0),
+    chain(0),
     branch(0),
     leaf(0),
     address(0),
@@ -92,7 +93,8 @@ struct Field
   bool   isvector;        /// True if vector type
   bool   iscounter;       /// true if this is a leaf counter
   int    maxsize;         /// Maximum number of elements in source variable
-  
+
+  TChain*  chain;         /// Chain to which this field is bound
   TBranch* branch;        /// Branch pertaining to source
   TLeaf*   leaf;          /// Leaf pertaining to source
   void*    address;       /// Source address
@@ -346,6 +348,8 @@ class itreestream
   Data          data;
   SelectedData  selecteddata;
   
+  std::map<std::string, TChain*> _chainmap;
+  
   int     _bufoffset;
   int     _bufcount;
   
@@ -353,8 +357,6 @@ class itreestream
   std::vector<std::string>  branchname;
   std::vector<int>          branchtab;
   std::vector<std::string>  filepath;
-
-  std::vector<TChain*> _chainlist;
 
   void _open(std::vector<std::string>& filenames, 
              std::vector<std::string>& treenames);

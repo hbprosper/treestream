@@ -46,6 +46,8 @@
 //          21-Feb-2018 HBP fix getenv call
 //          22-Feb-2018 HBP make sure correct tree is called for branches
 //                      that may come from different trees.
+//          02-Mar-2018 HBP fix interaction between chains and friendly trees
+//                      at 35,000 feet!
 //----------------------------------------------------------------------------
 #ifdef PROJECT_NAME
 #include <boost/regex.hpp>
@@ -62,7 +64,7 @@
 #include <cctype>
 #include <cassert>
 
-
+#include "TROOT.h"
 #include "TList.h"
 #include "TKey.h"
 #include "TFile.h"
@@ -849,10 +851,7 @@ namespace
   readbranch(Field* field, int entry)
   {
     assert(field != 0);
-    if ( field->branch ==0 ) return;
-
-    assert(field->branch != 0);
-    assert(field->leaf != 0);
+    if ( field->branch == 0 ) return;
 
     // Read entry for current branch
 
@@ -1089,10 +1088,7 @@ itreestream::_open(vector<string>& fname, vector<string>& tname)
      for (unsigned int j=0; j < fname.size(); ++j){
        filepath.push_back(fname[j]);
      }
-     //filepath.push_back(fname[0]);
-     //std::cout << "filepath size: " << filepath.size() << endl;  
 #endif
-      //DBUG("itreestream::ctor - new TFile ", 2);
       DBUG("itreestream::ctor - TFile::Open ", 2);
   
       // ----------------------------------------
@@ -1142,7 +1138,7 @@ itreestream::_open(vector<string>& fname, vector<string>& tname)
 
       // Remember to close file. It will be re-opened as part of a
       // chain.
-      
+
       file_->Close();
       
       DBUG("itreestream::ctor - after file->Close", 2);
@@ -1151,30 +1147,27 @@ itreestream::_open(vector<string>& fname, vector<string>& tname)
       // Create a chain of files
       // ----------------------------------------
       // WARNING: This might be slow for large chains. 
+
       
       DBUG("itreestream::ctor - new TChain", 2);
-      _chain = new TChain(_treename.c_str());
+      _chain = new TChain(tname[0].c_str());
       if ( ! _chain ) fatal("itreestream - Unable to create chain");
+      for(size_t i=0; i < filepath.size(); i++)
+	_chain->Add(filepath[i].c_str());
+      _chainmap[tname[0]] = _chain;
 
-      _chainlist.push_back(_chain);
       // ----------------------------------------
-      // Add possible friends
+      // Add possible friendly trees
       // ----------------------------------------
-      for(unsigned int i=1; i < tname.size(); i++)
+      for(size_t i=1; i < tname.size(); i++)
         {
           DBUG("itreestream::ctor - AddFriend " + tname[i], 2);
-          _chainlist.push_back(new TChain(tname[i].c_str()));
-          _chain->AddFriend(_chainlist.back());
+          _chainmap[tname[i]] = new TChain(tname[i].c_str());
+	  for(size_t j=0; j < filepath.size(); j++)
+	    _chainmap[tname[i]]->Add(filepath[j].c_str());	  
+          _chain->AddFriend(_chainmap[tname[i]]);
         }
-
-      for(int i=0; i < (int)filepath.size(); i++)
-        {
-          for(unsigned int k=0; k < _chainlist.size(); k++)
-            {
-              _chainlist[k]->Add(filepath[i].c_str());
-            }
-        }
-
+      
       DBUG("itreestream::ctor - GetEntries", 2);
       _entries = _chain->GetEntries();
       
@@ -1182,7 +1175,6 @@ itreestream::_open(vector<string>& fname, vector<string>& tname)
       // Update tree pointer
       // ----------------------------------------
       _tree = _chain; 
-
     }
 
   // ----------------------------------------
@@ -1193,9 +1185,9 @@ itreestream::_open(vector<string>& fname, vector<string>& tname)
   //    <branchname>.<leafname> 
   // ----------------------------------------
   
-  for(unsigned int k=0; k < _chainlist.size(); k++)
+  for(size_t k=0; k < tname.size(); k++)
     {
-      TChain* chain = _chainlist[k];
+      TChain* chain = _chainmap[tname[k]];
       TObjArray* array = chain->GetListOfBranches();
       if ( !array ) fatal("itreestream::ctor - "
                           "Unable to GetListOfBranches for " +
@@ -1367,9 +1359,6 @@ void
 itreestream::_getleaf(TBranch* branch, TLeaf* leaf)
 {
   if ( branch == 0 ) fatal("_getleaf - branch pointer zero");
-
-  //bool storeBranchname = leaf == 0;
-
   if ( leaf == 0 )
     {
       TObjArray* array = branch->GetListOfLeaves();
@@ -1384,18 +1373,28 @@ itreestream::_getleaf(TBranch* branch, TLeaf* leaf)
   v.srctype = 0;      // Set by caller
   v.maxsize = 0;      // Set by caller
   v.isvector= false;  // Set by caller (true if external variable is a vector)
+
   v.branch  = branch;
   v.leaf    = leaf;
-  
+
   v.treename  = branch->GetTree()->GetName();
   v.branchname= branch->GetName();
   v.leafname  = leaf->GetName();
   v.fullname  = v.treename + "/" + v.branchname;
-  
+
+  // associate this field with the chain to which is belongs
+  string key = v.treename;
+  if ( _chainmap.find(key) == _chainmap.end() )
+    {
+      key = string(branch->GetTree()->GetDirectory()->GetName())
+	+ string("/") + v.treename;
+      if ( _chainmap.find(key) == _chainmap.end() )
+	fatal("getleaf - unable to find chain associated with field " + key);
+    }
+  v.chain     =_chainmap[key];
   v.iotype    = leaf->GetTypeName()[0];
   v.iscounter = false;
 
-   
   // If the branch contains a single leaf, it is sufficient
   // to identify the leaf with the branch. Otherwise, create
   // a name for each leaf within the branch.
@@ -1596,6 +1595,8 @@ int
 itreestream::read(int entry)
 {
   _statuscode = kSUCCESS;
+  // localentry is relative to a tree, while entry is global ordinal value
+  // of event.
   int localentry = 0;
 
   // If entry is negative, we assume that the tree is already in
@@ -1612,7 +1613,7 @@ itreestream::read(int entry)
       if (localentry < 0) return localentry;
 
       if ( DEBUGLEVEL > 0 ) 
-        cout << "entry(" << entry << ")"
+        cout << "entry(" << entry << ") "
              << "localentry(" << localentry << ")" << endl;
 
       // Update pointers to tree, branches and leaves.
@@ -1912,13 +1913,13 @@ itreestream::_select(string namen, void* address, int maxsize, char srctype,
 
 // ------------------------------------------------------------------------
 // Update the branch and leaf pointers. We do this when we switch from one 
-// tree to another in a chain of Root-files.
+// tree, or trees, to another in a chain of Root-files.
 // ------------------------------------------------------------------------
 void 
 itreestream::_update()
 {
   _statuscode = kSUCCESS; 
-  if ( _chain != 0 ) 
+  if ( _chain != 0 )
     _current = _chain->GetTreeNumber();
   else
     _current = _tree->GetTreeNumber();
@@ -1929,28 +1930,27 @@ itreestream::_update()
       Field* field = it->second;
       if ( field == 0 )  fatal("update - zero field pointer");
 
-      TBranch* branch = field->branch; //field->tree->GetBranch(field->branchname.c_str());
-      if ( branch == 0 )
+      if ( field->chain == 0 ) fatal("update - zero field->chain pointer");
+      
+      field->branch = field->chain->GetBranch(field->branchname.c_str());
+      if ( field->branch == 0 )
         { 
-          warning("update - pointer is zero for branch (" 
+          fatal("update - pointer is zero for tree/branch (" 
                   + field->fullname + ")");
           field->branch = 0;
           field->leaf   = 0;
           continue;
         }
-      TLeaf* leaf = branch->GetLeaf(field->leafname.c_str());
-      if ( leaf == 0 ) fatal("update - pointer is zero for leaf "
+      field->leaf = field->branch->GetLeaf(field->leafname.c_str());
+      if ( field->leaf == 0 ) fatal("update - pointer is zero for leaf "
                              + field->leafname);
-
-      field->branch = branch;
-      field->leaf   = leaf;
 
       // We let Root handle vector types directly
       if ( field->iotype == 'v')
         {
-          _chain->SetBranchAddress(field->branchname.c_str(), 
-                                   &field->address, 
-                                   &field->branch);
+          field->chain->SetBranchAddress(field->branchname.c_str(), 
+					 &field->address, 
+					 &field->branch);
         }
       else if ( field->maxsize < 1 )
         fatal("_update - external buffer for " 
