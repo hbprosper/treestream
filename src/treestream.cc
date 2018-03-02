@@ -1068,7 +1068,7 @@ itreestream::_open(vector<string>& fname, vector<string>& tname)
       _gettree(file_);
       DBUG("itreestream::ctor - after _gettree");
       
-      if ( _treename == "" )
+      if ( tname.size() == (size_t)0 )
         {
           // ----------------------------------------
           // No tree name was given. Here is the default
@@ -1085,8 +1085,11 @@ itreestream::_open(vector<string>& fname, vector<string>& tname)
           cout << "** WARNING ** itreestream - tree not given; using tree: " 
                << _treename << endl;
         }
-      else if ( TString(_treename.c_str()).Contains("*") )
+      else if ( TString(tname[0].c_str()).Contains("*") )
 	{
+          // ----------------------------------------
+          // All trees requested
+          // ----------------------------------------	  
 	  tname.resize(_treenames.size());
 	  copy(_treenames.begin(), _treenames.end(), tname.begin());
 	  _treename = _treenames[0];
@@ -1095,13 +1098,15 @@ itreestream::_open(vector<string>& fname, vector<string>& tname)
             fatal("itreestream - NO tree found in file " + filepath[0]);	  
 	}
       else
-        {
-	  tname.resize(1);
-	  tname[0] = _treename;
-          _tree = (TTree*)file_->Get(_treename.c_str());
+	{
+          // ----------------------------------------
+          // At least one tree requested
+          // ----------------------------------------	  
+	  _treename = tname[0];
+	  _tree = (TTree*)file_->Get(_treename.c_str());
           if ( ! _tree )
-            fatal("itreestream - NO tree found in file " + filepath[0]);
-        }
+            fatal("itreestream - NO tree found in file " + filepath[0]);	  
+	}	
       
       string message("itreestream::ctor - treename: " + _treename);
       DBUG(message);
@@ -1154,9 +1159,12 @@ itreestream::_open(vector<string>& fname, vector<string>& tname)
   // use the syntax:
   //    <branchname>.<leafname> 
   // ----------------------------------------
-  
+  if ( DEBUGLEVEL > 0 )
+    cout << "itreestream::ctor - number of trees: " << tname.size() << endl;
+								       
   for(size_t k=0; k < tname.size(); k++)
     {
+ 
       TChain* chain = _chainmap[tname[k]];
       TObjArray* array = chain->GetListOfBranches();
       if ( !array ) fatal("itreestream::ctor - "
@@ -1165,11 +1173,11 @@ itreestream::_open(vector<string>& fname, vector<string>& tname)
 
       int nitems = array->GetEntries();
 
-      if ( DEBUGLEVEL > 1 )
+      if ( DEBUGLEVEL > 0 )
         {
           char message[80];
-          sprintf(message, "Number of branches in tree %s: %d", 
-                  string(chain->GetName()).c_str(), nitems);
+          sprintf(message, "itreestream::ctor - number of branches in tree %s: %d", 
+                  tname[k].c_str(), nitems);
           cout << message << endl;
         }
 
@@ -1242,6 +1250,39 @@ itreestream::_gettree(TDirectory* dir, int depth, string dirname)
     }
   return;
 }
+
+// void
+// itreestream::_getbranches(TDirectory* dir, int depth, string dirname)
+// {
+//   depth += 1;
+//   if ( depth > 10 ) return;
+
+//   DBUG("getbranches(entered)");
+//   TIter nextkey(dir->GetListOfKeys());          
+//   while ( TKey* key = (TKey*)nextkey() )
+//     {
+//       TObject* o = key->ReadObj();
+//       if ( o->IsA()->InheritsFrom("TTree") )
+// 	{
+// 	  _tree = dynamic_cast<TTree*>(o);
+// 	  _treenames.push_back(dirname + string(_tree->GetName()));
+// 	  DBUG("gettree - tree: " + string(_tree->GetName()));
+// 	}
+//       else if ( o->IsA()->InheritsFrom("TDirectory") )
+// 	{
+// 	  TDirectory* d = dynamic_cast<TDirectory*>(o);
+// 	  DBUG("gettree - dir: " + string(d->GetName()));
+	  
+// 	  if ( depth == 1 )
+// 	    dirname  = string(d->GetName()) + "/";
+// 	  else
+// 	    dirname += string(d->GetName()) + "/";
+// 	  _gettree(d, depth, dirname);
+// 	}
+//     }
+//   return;
+// }
+
 
 // string
 // itreestream::_gettree(TDirectory* dir, string treename, int depth)
@@ -1383,7 +1424,11 @@ itreestream::_getleaf(TBranch* branch, TLeaf* leaf)
     }
 
   if ( DEBUGLEVEL > 0 ) 
-    cout << "getleaf(" << v.fullname << ")" << endl;
+    cout << "getleaf"
+	 << " fullname(" << v.fullname << ")"
+	 << " treename(" << v.treename << ")"
+      	 << " branchname(" << v.branchname << ")"
+	 << endl;
 }
 
 // Shutdown stream
@@ -1819,7 +1864,7 @@ itreestream::_select(string namen, void* address, int maxsize, char srctype,
  
 
   if ( DEBUGLEVEL > 0 )
-    cout << "_select - NAMEN(" << namen << ")" << endl;
+    cout << "_select - field name(" << namen << ")" << endl;
 
   // Check for new name
   if ( selecteddata.find(namen) != selecteddata.end() )
