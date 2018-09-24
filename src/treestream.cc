@@ -48,6 +48,14 @@
 //                      that may come from different trees.
 //          02-Mar-2018 HBP fix interaction between chains and friendly trees
 //                      at 35,000 feet!
+//          20-Sep-2018 HBP remember to set fullname in _add function.
+//                          possible compiler issue: wrong overloaded function
+//                          called, namely, float version of add when int version
+//                          requested. this caused the counter variables to fail.
+//                          the int version. placing int version of add function
+//                          before float version corrects the problem. (using
+//                          clang++ version clang-802.0.42.
+//                          
 //----------------------------------------------------------------------------
 #ifdef PROJECT_NAME
 #include <boost/regex.hpp>
@@ -758,8 +766,9 @@ namespace
 
     if ( DEBUGLEVEL > 0 )
       {
-        cout << "\tcreatebranch: maxsize: " << v->value.size() << endl;
-        cout << "\tcreatebranch: ADDRESS: " << v->address << endl;
+        cout << "\tcreatebranch: maxsize:  " << v->value.size() << endl;
+        cout << "\tcreatebranch: address:  " << v->address << endl;
+	cout << "\tcreatebranch: fullname: " << v->fullname << endl;
       }
 
     // Store in map
@@ -772,13 +781,13 @@ namespace
     void* address = &(v->value[0]);
     tree->Branch(v->fullname.c_str(), address, format);
 
-
     TBranch* branch = tree->GetBranch(v->fullname.c_str());
     if ( branch == 0 ) fatal("createbranch - unable create branch " + 
                              v->fullname);
 
     v->branch = branch;
     v->leaf   = branch->GetLeaf(v->fullname.c_str());
+    
     assert(v->leaf);
 
     DBUG("\tcreatebranch: END");
@@ -1199,7 +1208,8 @@ itreestream::_open(vector<string>& fname, vector<string>& tname)
       TLeaf* leafcounter = it->second.leaf->GetLeafCounter(count);
       if ( leafcounter != 0 )
 	{
-	  string fullname = it->second.treename + "/" + leafcounter->GetBranch()->GetName();
+	  string fullname = it->second.treename + "/" +
+	    leafcounter->GetBranch()->GetName();
 	  if ( data.find(fullname) != data.end() )
 	    {
 	      data[fullname].iscounter = true;
@@ -1397,7 +1407,7 @@ itreestream::_getleaf(TBranch* branch, TLeaf* leaf)
   v.leafname  = leaf->GetName();
   v.fullname  = v.treename + "/" + v.branchname;
 
-  // associate this field with the chain to which is belongs
+  // associate this field with the chain to which it belongs
   string key = v.treename;
   if ( _chainmap.find(key) == _chainmap.end() )
     {
@@ -1795,6 +1805,24 @@ itreestream::_select(string namen, void* address, int maxsize, char srctype,
 {
   _statuscode = kSUCCESS;
 
+  // If namen does not specify a tree name, then  default to first tree name
+  bool treename_specified = false;
+  for(size_t i=0; i < _treenames.size(); i++)
+    {
+      DBUG(string("_select - treename( ") + _treenames[i] + string(" )"));
+      string key = _treenames[i] + string("/");
+      if ( namen.find(key) != std::string::npos )
+	{
+	  treename_specified = true;
+	  break;
+	}
+    }
+  if ( ! treename_specified )
+    {
+      namen = _treename + "/" + namen;
+      DBUG("_select - WARNING - treename not specified - use: " + _treename);
+    }
+
   // If variable has already been selected, just update its address and
   // source type, otherwise get the branch and leaf.
 
@@ -2133,6 +2161,7 @@ otreestream::name() { return _tree ? _tree->GetName() : ""; }
 string
 otreestream::title() { return _tree ? _tree->GetTitle() : ""; }
 
+
 void
 otreestream::add(string namen, double& datum, char iotype)
 {
@@ -2168,11 +2197,11 @@ otreestream::add(string namen, short& datum)
   _add(namen, &datum, 1, 'S', 'S');
 }
 
-void
-otreestream::add(string namen, char& datum)
-{
-  _add(namen, &datum, 1, 'B', 'B');
-}
+// void
+// otreestream::add(string namen, char& datum)
+// {
+//   _add(namen, &datum, 1, 'B', 'B');
+// }
 
 void
 otreestream::add(string namen, bool& datum)
@@ -2186,11 +2215,11 @@ otreestream::add(string namen, string& datum)
   _add(namen, &datum, 1, 'C', 'C');
 }
 
-void
-otreestream::add(string namen, unsigned long& datum)
-{
-  _add(namen, &datum, 1, 'l', 'l');
-}
+// void
+// otreestream::add(string namen, unsigned long& datum)
+// {
+//   _add(namen, &datum, 1, 'l', 'l');
+// }
 
 void
 otreestream::add(string namen, unsigned int& datum)
@@ -2201,7 +2230,7 @@ otreestream::add(string namen, unsigned int& datum)
 void
 otreestream::add(string namen, unsigned short& datum)
 {
-  _add(namen, &datum, 1, 'l', 'l');
+  _add(namen, &datum, 1, 's', 's');
 }
 
 // Vectors
@@ -2236,11 +2265,11 @@ otreestream::add(string namen, vector<short>& d)
   _add(namen, &d, d.size(), 'S', 'S', true);
 }
 
-void 
-otreestream::add(string namen, vector<char>& d)
-{
-  _add(namen, &d, d.size(), 'B', 'B', true);
-}
+// void 
+// otreestream::add(string namen, vector<char>& d)
+// {
+//   _add(namen, &d, d.size(), 'B', 'B', true);
+// }
 
 void 
 otreestream::add(string namen, vector<bool>& d)
@@ -2248,11 +2277,11 @@ otreestream::add(string namen, vector<bool>& d)
   _add(namen, &d, d.size(), 'O', 'O', true);
 }
 
-void 
-otreestream::add(string namen, vector<unsigned long>& d)
-{
-  _add(namen, &d, d.size(), 'l', 'l', true);
-}
+// void 
+// otreestream::add(string namen, vector<unsigned long>& d)
+// {
+//   _add(namen, &d, d.size(), 'l', 'l', true);
+// }
 
 void 
 otreestream::add(string namen, vector<unsigned int>& d)
@@ -2467,8 +2496,10 @@ void
 otreestream::_add(string namen, void* address, int maxsize,
                   char srctype, char iotype, bool isvector)
 {
-  DBUG("_add: BEGIN");
+  DBUG("\n_add: BEGIN");
 
+  DBUG(string("_add: srctype: ") + srctype + string("\tiotype: ") + iotype);
+    
   _statuscode = kSUCCESS;
   if ( maxsize < 1 )
     fatal("add - external buffer for " 
@@ -2498,13 +2529,14 @@ otreestream::_add(string namen, void* address, int maxsize,
   if ( selecteddata.find(namen) == selecteddata.end() )
     {      
       Field field;
-      field.srctype = srctype;
-      field.iotype  = iotype;
-      field.address = address; // Source address
-      field.maxsize = maxsize;
-      field.isvector= isvector;
-      field.branchname = namen;
-
+      field.srctype   = srctype;
+      field.iotype    = iotype;
+      field.address   = address; // Source address
+      field.maxsize   = maxsize;
+      field.isvector  = isvector;
+      field.branchname= namen;
+      field.fullname  = namen;
+      
       // Allocate a buffer of appropriate type and size
       // and create a corresponding branch
 
@@ -2531,15 +2563,15 @@ otreestream::_add(string namen, void* address, int maxsize,
           break;
 
         case 'B':
-          createbranch<char> (_tree, &field, format, selecteddata);
+          createbranch<char>  (_tree, &field, format, selecteddata);
           break;
 
         case 'O':
-          createbranch<int>  (_tree, &field, format, selecteddata);
+          createbranch<int>   (_tree, &field, format, selecteddata);
           break;
 
         case 'C':
-          createbranch<string> (_tree, &field, format, selecteddata);
+          createbranch<string>(_tree, &field, format, selecteddata);
           break;
 
         case 'l':
@@ -2555,7 +2587,7 @@ otreestream::_add(string namen, void* address, int maxsize,
           break;
     
         case 'b':
-          createbranch<unsigned char> (_tree, &field, format, selecteddata);
+          createbranch<unsigned char>  (_tree, &field, format, selecteddata);
           break;
 
         default:
@@ -2575,82 +2607,3 @@ std::ostream& operator<<(std::ostream& os, const otreestream& tuple)
   return os;
 }
 
-
-//////////////////////////////////////////////////////////////////////////////
-
-#ifdef __TEST__
-
-#include <iomanip>
-#include "TRandom3.h"
-
-int main()
-{
-  cout << endl << endl << "Read/Write Test" << endl << endl;
-
-  otreestream oustream("test.root", "Events", "Test");
-
-  int njet = 0;
-  oustream.add("njet", njet);
-
-  vector<double> jetet(20);
-  oustream.add("jetEt[njet]",jetet);
-
-  string str(80, 0);
-  oustream.add("str", str);
-
-  TRandom3 rand;
-  int entries = 10;
-  int step    = 1;
-  for(int entry=0; entry < entries; entry++)
-    {
-      njet = rand.Integer(10);
-      jetet.clear();
-      for(int i=0; i < njet; i++) 
-        jetet.push_back(rand.Exp(10));
-
-      char rec[80];
-      string delim(entry+1, '-');
-      sprintf(rec, "event: %d %s njet: %d", entry + 1, delim.c_str(), njet);
-      str = string(rec);
- 
-      oustream.commit();
-
-      if ( entry % step == 0 )
-        cout << setw(5) << entry 
-             << setw(5) << jetet.size()  
-             << setw(10)<< jetet[0] 
-             << " (" << str << ")"
-             << endl;
-    }
-  oustream.close();
-
-
-  itreestream stream("test.root", "Events");
-  
-  int nentries = stream.entries();
-  //cout << endl << "Number of entries " << nentries << endl;
-  cout << stream << endl;
-
-  vector<float> JETET(20, -1);
-  string STR;
-
-  stream.select("jetEt", JETET);
-  stream.select("str", STR);
-  
-  for(int entry=0; entry < nentries; entry++)
-    {
-      stream.read(entry);
-
-      if ( entry % step == 0 )
-        cout << setw(5) << entry 
-             << setw(5) << JETET.size()  
-             << setw(10)<< JETET[0]
-             << " (" << STR << ")"
-             << endl;
-    }
-
-  stream.close();
-  return 0;
-}
-
-#endif

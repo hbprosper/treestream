@@ -1,3 +1,13 @@
+v1_1_2
+------
+	1. remove add and select for "char" and "unsigned long" because they seem
+	to cause PyROOT to screw up the function overloading in otreestream.
+	2. split treestream.h into itreestream.h and otreestream.h.
+	3. add testtreestream.cc, update testtreestream.py to match the former.
+	4. add treestream.py to allow, e.g., "from treestream import itreestream"
+	5. split of Field declaration into separate header (Field.h)
+	6. verify that all works with root v6_14_04.
+	
 V1_1_1
 ------
 	1. Fix faulty interaction between chains and friends.

@@ -15,12 +15,18 @@ incdir	:= include
 srcdir	:= src
 libdir	:= lib
 bindir	:= bin
+testdir	:= test
+
+TEST	:= $(testdir)/test$(NAME)
+
 $(shell mkdir -p lib)
 
 # get lists of sources
 
-SRCS	:=  	$(srcdir)/treestream.cc \
-		$(srcdir)/pdg.cc
+SRCS	:=  	$(srcdir)/itreestream.cc \
+		$(srcdir)/otreestream.cc \
+		$(srcdir)/pdg.cc \
+		$(srcdir)/testme.cc
 
 CINTSRCS:= $(wildcard $(srcdir)/*_dict.cc)
 
@@ -51,7 +57,8 @@ LD		:= g++
 endif
 CPPFLAGS	:= -I. -I$(incdir)
 CXXFLAGS	:= -O -Wall -fPIC -g -ansi -Wshadow -Wextra \
-$(shell root-config --cflags)
+$(shell root-config --cflags) \
+$(shell python-config --cflags)
 LDFLAGS		:= -g
 # ----------------------------------------------------------------------------
 # which operating system?
@@ -62,12 +69,15 @@ ifeq ($(OS),Darwin)
 else
 	LDFLAGS	+= -shared
 	LDEXT	:= .so
-endif	
-LDFLAGS += $(shell root-config --ldflags) -Wl,-rpath,$(ROOTSYS)/lib
+endif
+
+ROOTFLAGS:= $(shell root-config --ldflags)
+LDFLAGS += $(ROOTFLAGS) -Wl,-rpath,$(ROOTSYS)/lib
+
 LIBS 	:= -lPyROOT $(shell root-config --libs)
 LIBRARY	:= $(libdir)/lib$(NAME)$(LDEXT)
 # ----------------------------------------------------------------------------
-all: $(LIBRARY)
+all: $(LIBRARY) $(TEST)
 
 install:
 	cp $(bindir)/mk*.py $(EXTERNAL)/bin
@@ -75,6 +85,16 @@ install:
 	cp $(incdir)/pdg.h $(EXTERNAL)/include
 	cp $(libdir)/lib$(NAME)$(LDEXT) $(EXTERNAL)/lib
 	find $(libdir) -name "*.pcm" -exec mv {} $(EXTERNAL)/lib \;
+
+$(TEST)	: $(TEST).o
+	@echo ""
+	@echo "=> Linking test program $@"
+	$(LD) $(ROOTFLAGS) $^ -L$(libdir) -l$(NAME) $(LIBS) -o $@
+
+$(TEST).o	: 	$(TEST).cc
+	@echo ""
+	@echo "=> Compiling $<"
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
 
 $(LIBRARY)	: $(OBJECTS)
 	@echo ""
@@ -86,17 +106,17 @@ $(OBJECTS)	: %.o	: 	%.cc
 	@echo "=> Compiling $<"
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
 
-$(DICTIONARIES)	: $(srcdir)/%_dict.cc	: $(incdir)/%.h $(srcdir)/%_linkdef.h
+$(DICTIONARIES)	: $(srcdir)/%_dict.cc	: $(incdir)/%.h #$(srcdir)/%_linkdef.h
 	@echo ""
 	@echo "=> Building dictionary $@"
 	$(ROOTCINT)	-f $@ -c $(CPPFLAGS) $^
 	find $(srcdir) -name "*.pcm" -exec mv {} $(libdir) \;
 
 tidy:
-	rm -rf $(srcdir)/*_dict*.* $(srcdir)/*.o 
+	rm -rf $(srcdir)/*_dict*.* $(srcdir)/*.o $(testdir)/*.o
 
 clean:
-	rm -rf $(libdir)/* $(srcdir)/*_dict*.* $(srcdir)/*.o
+	rm -rf $(libdir)/* $(srcdir)/*_dict*.* $(srcdir)/*.o $(TEST) $(TEST).o
 	rm -rf $(EXTERNAL)/lib/*$(NAME)*
 	rm -rf $(EXTERNAL)/lib/pdg_*.pcm
 	rm -rf $(EXTERNAL)/include/*$(NAME)*
