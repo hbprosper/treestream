@@ -1,86 +1,111 @@
 //----------------------------------------------------------------------------
 // File: testtreestream.cc
+// Description:
+//  
+// Writing code to create and and read flat ROOT ntuples (ones that store the
+// standard types, int, long, float, double, string and arrays thereof) is a
+// routine task. It is so routine in fact that this chore ought to be done
+// for you...by a machine. That is the purpose of the package treestream. It
+// handles all the boilerplate ROOT code for creating and reading flat ROOT
+// ntuples and does so through a very simple interface. treestream is the
+// modern incarnation of a package written in 2001 when the author finally
+// got fed up of writing the same boilerplate code to create and read flat
+// ntuples.
+// 
+// The package contains two classes itreestream and otreestream that can
+// be called from C++ or Python (via PyROOT). This example shows how to
+// use them.
+//
+// Created: 20-Sep-2018 Harrison B. Prosper
 //----------------------------------------------------------------------------
+#include <ctime>
 #include <iomanip>
 #include "TRandom3.h"
 #include "treestream.h"
 using namespace std;
 //----------------------------------------------------------------------------
-int main()
+void write_ntuple(string filename="test.root", string treename="Events")
 {
-  cout << "treestream: read/write test" << endl;
+  time_t t = time(0);
+  otreestream stream(filename, treename, ctime(&t));
 
-  otreestream oustream("test_cc.root", "Events", "Test");
-
-  double ht = 0;
+  double HT = 0;
   int njet  = 0;
   vector<double> jetet(20);
-  string astring(80, ' ');
+  string comment(80, ' ');
 
-
-  oustream.add("HT", ht);  
-  oustream.add("njet", njet);
-  oustream.add("jetEt[njet]", jetet);
-  oustream.add("astring", astring);
+  stream.add("HT", HT);  
+  stream.add("njet", njet);
+  stream.add("jetEt[njet]", jetet);
+  stream.add("comment", comment);
   
   TRandom3 rand;
-  int entries = 1400;
+  int entries = 1000;
   int step    =  200;
 
   for(int entry=0; entry < entries; entry++)
     {
       njet = rand.Integer(10);
       jetet.clear();
-      ht = 0.0;
+      HT = 0.0;
       for(int i=0; i < njet; i++)
 	{
 	  jetet.push_back(rand.Exp(10));
-	  ht += jetet.back();
+	  HT += jetet.back();
 	}
 
       char rec[80];
       sprintf(rec, "event: %5d njet = %2d", entry + 1, njet);
-      astring = string(rec);
+      comment = string(rec);
  
-      oustream.commit();
+      stream.commit();
 
       if ( entry % step == 0 )
 	{
 	  cout << setw(5) << entry 
 	       << setw(5) << jetet.size()  
-	       << setw(10)<< ht
-	       << " (" << astring << ")"
+	       << setw(10)<< HT
+	       << " (" << comment << ")"
 	       << endl;
 	}
     }
-  oustream.close();
-
-  // ----------------------------------------------------------------------------
-  itreestream instream("test_cc.root", "Events");
+  stream.close();
+}
+//----------------------------------------------------------------------------
+void read_ntuple(string filename="test.root", string treename="Events")
+{
+  itreestream stream(filename, treename);
   
-  int ENTRIES = instream.entries();
-  instream.ls();
+  int entries = stream.entries();
+  stream.ls();
 
   double HT;
-  vector<float> JETET(20);
-  string ASTRING(80, ' ');
+  vector<float> jetet(20);
+  string comment(80, ' ');
 
-  instream.select("jetEt", JETET);
-  instream.select("astring", ASTRING);
-  instream.select("HT", HT);
-  
-  for(int entry=0; entry < ENTRIES; entry++)
+  stream.select("jetEt", jetet);
+  stream.select("comment", comment);
+  stream.select("HT", HT);
+
+  int step = 200;
+  for(int entry=0; entry < entries; entry++)
     {
-      instream.read(entry);
+      stream.read(entry);
 
       if ( entry % step == 0 )
         cout << setw(5) << entry 
-             << setw(5) << JETET.size()  
+             << setw(5) << jetet.size()  
              << setw(10)<< HT
-             << " (" << ASTRING << ")"
+             << " (" << comment << ")"
              << endl;
     }
-
-  instream.close();
+  stream.close();
+}
+//----------------------------------------------------------------------------
+int main()
+{
+  cout << "treestream: read/write test" << endl;
+  write_ntuple();
+  read_ntuple();
   return 0;
 }

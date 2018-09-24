@@ -73,8 +73,7 @@ endif
 
 ROOTFLAGS:= $(shell root-config --ldflags)
 LDFLAGS += $(ROOTFLAGS) -Wl,-rpath,$(ROOTSYS)/lib
-
-LIBS 	:= -lPyROOT $(shell root-config --libs)
+LIBS 	:= $(shell root-config --libs)
 LIBRARY	:= $(libdir)/lib$(NAME)$(LDEXT)
 # ----------------------------------------------------------------------------
 all: $(LIBRARY) $(TEST)
@@ -106,7 +105,7 @@ $(OBJECTS)	: %.o	: 	%.cc
 	@echo "=> Compiling $<"
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
 
-$(DICTIONARIES)	: $(srcdir)/%_dict.cc	: $(incdir)/%.h #$(srcdir)/%_linkdef.h
+$(DICTIONARIES)	: $(srcdir)/%_dict.cc	: $(incdir)/%.h
 	@echo ""
 	@echo "=> Building dictionary $@"
 	$(ROOTCINT)	-f $@ -c $(CPPFLAGS) $^
