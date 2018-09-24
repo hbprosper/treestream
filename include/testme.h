@@ -32,6 +32,6 @@ template void testme::show(std::string, unsigned short&);
 template void testme::show(std::string, unsigned int&);
 template void testme::show(std::string, float&);
 template void testme::show(std::string, double&);
-template void testme::show(std::string, string&);
+template void testme::show(std::string, std::string&);
 
 #endif
