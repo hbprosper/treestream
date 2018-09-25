@@ -1,3 +1,7 @@
+v2_0_2
+------
+	1. go back to a single header file (treestream.h) since splitting the headers
+	breaks mkanalyzer.py
 v2_0_1
 ------
 	1. minor fix in testme.h

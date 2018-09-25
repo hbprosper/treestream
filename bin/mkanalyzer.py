@@ -68,8 +68,9 @@ AUTHOR = getauthor()
 if os.environ.has_key("CMSSW_BASE"):
     CMSSW_BASE = os.environ["CMSSW_BASE"]
     PACKAGE = "%s/src/PhysicsTools/TheNtupleMaker" % CMSSW_BASE
-    TREESTREAM_HPP = "%s/interface/treestream.h" % PACKAGE
-    TREESTREAM_CPP = "%s/src/treestream.cc" % PACKAGE
+    TREESTREAM_HPP = "%s/interface/treestream.h" % PACKAGE    
+    TREESTREAM_CPP = "%s/src/treestream.cc"  % PACKAGE
+    
     TNM_HPP = "%s/interface/tnm.h" % PACKAGE
     TNM_CPP = "%s/src/tnm.cc" % PACKAGE
     TNM_PY  = "%s/python/tnm.py" % PACKAGE
@@ -78,12 +79,14 @@ else:
         area  = {'local': '%s' % os.environ['TREESTREAM_PATH']}
         TREESTREAM_HPP = "%(local)s/include/treestream.h" % area
         TREESTREAM_CPP = "%(local)s/src/treestream.cc" % area
+        
         TNM_HPP = "%(local)s/tnm/tnm.h"  % area
         TNM_CPP = "%(local)s/tnm/tnm.cc" % area
         TNM_PY  = "%(local)s/tnm/tnm.py" % area
     else:
         TREESTREAM_HPP = "treestream.h"
         TREESTREAM_CPP = "treestream.cc"
+        
         TNM_HPP = "tnm.h"
         TNM_CPP = "tnm.cc"
         TNM_PY  = "tnm.py"
@@ -934,11 +937,17 @@ def main():
                     fldname = 'f%s' % fldname
 
                 if not vectormap.has_key(objname): vectormap[objname] = []	
-                vectormap[objname].append((rtype, fldname, varname, count, countername))
+                vectormap[objname].append((rtype,
+                                               fldname,
+                                               varname,
+                                               count,
+                                               countername))
                 #print "%s.%s (%s)" % (objname, fldname, count)
 
     if skipped != "":
         open("variables_skipped.txt", "w").write(skipped)
+    else:
+        os.system("rm -rf variables_skipped.txt")
         
     # Declare all variables
     keys = varmap.keys()

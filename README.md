@@ -1,6 +1,7 @@
 treestream
 =======
-A simple interface to Root files containing simple trees. We recommend
+A simple interface to Root files containing simple trees, such as the
+CMS NanoAOD. We recommend
 that you create a directory called __external__ in your home directory,
 as shown below to contain all external packages, and install
 __treestream__ in that directory.  You must 
@@ -14,26 +15,30 @@ You may wish to add this command to your __.bash_profile__, which is a hidden
 file in your home directory. The above command is given for a bash shell.
 
 INSTALLATION
-
+```bash
 	cd
 	mkdir -p external/bin
 	mkdir -p external/lib
 	mkdir -p external/include
+	mkdir -p external/share
 
-	git http://github.com/hbprosper/treestream.git
+	git https://github.com/hbprosper/treestream.git
 	cd external
 	make
 	make install
-
+```
 TEST
-
+```bash
 	cd test
-	python testtreestream.py
+	./testtreestream
+	./testtreestream.py
+```
+There is also a __jupyter__ notebook version of the test program.
 
 ANALYZER UTILITIES
 
-1. mkvariables.py reads a Root file and creates the file variables.txt 
+1. __mkvariables.py__  reads a Root file and creates the file __variables.txt__
 containing a description of (by default) the first tree it finds.
 
-2. mkanalyzer.py reads variables.txt and creates the skeleton of an C++ 
+2. __mkanalyzer.py__ reads __variables.txt__ and creates the skeleton of an C++ 
 and Python analyzer program for the Root tree.

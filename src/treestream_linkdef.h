@@ -1,10 +1,7 @@
 #ifdef __CINT__
-#pragma link C++ class vector<int>+;
-#pragma link C++ class vector<long>+;
-#pragma link C++ class vector<unsigned int>+;
-#pragma link C++ class vector<unsigned long>+;
-#pragma link C++ class vector<float>+;
-#pragma link C++ class vector<double>+;
+#pragma link off all globals;
+#pragma link off all classes;
+#pragma link off all functions;
 #pragma link C++ class itreestream+;
 #pragma link C++ class otreestream+;
 #endif 

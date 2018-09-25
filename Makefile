@@ -23,8 +23,7 @@ $(shell mkdir -p lib)
 
 # get lists of sources
 
-SRCS	:=  	$(srcdir)/itreestream.cc \
-		$(srcdir)/otreestream.cc \
+SRCS	:=  	$(srcdir)/treestream.cc \
 		$(srcdir)/pdg.cc \
 		$(srcdir)/testme.cc
 
@@ -105,7 +104,7 @@ $(OBJECTS)	: %.o	: 	%.cc
 	@echo "=> Compiling $<"
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
 
-$(DICTIONARIES)	: $(srcdir)/%_dict.cc	: $(incdir)/%.h
+$(DICTIONARIES)	: $(srcdir)/%_dict.cc	: $(incdir)/%.h $(srcdir)/%_linkdef.h
 	@echo ""
 	@echo "=> Building dictionary $@"
 	$(ROOTCINT)	-f $@ -c $(CPPFLAGS) $^
