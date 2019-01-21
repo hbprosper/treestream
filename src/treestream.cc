@@ -55,6 +55,7 @@
 //                          the int version. placing int version of add function
 //                          before float version corrects the problem. (using
 //                          clang++ version clang-802.0.42.
+//          20-Jan-2019 HBP avoid ROOT warning when handling stored vector types.
 //                          
 //----------------------------------------------------------------------------
 #ifdef PROJECT_NAME
@@ -1076,7 +1077,7 @@ itreestream::_open(vector<string>& fname, vector<string>& tname)
       DBUG("itreestream::ctor - before _gettree");
       _gettree(file_);
       DBUG("itreestream::ctor - after _gettree");
-      
+
       if ( tname.size() == (size_t)0 )
         {
           // ----------------------------------------
@@ -1195,7 +1196,6 @@ itreestream::_open(vector<string>& fname, vector<string>& tname)
           TBranch* branch = (TBranch*)((*array)[i]);      
           _getbranches(branch, 0);
         }
-
     }
 
   // ----------------------------------------
@@ -1244,12 +1244,12 @@ itreestream::_gettree(TDirectory* dir, int depth, string dirname)
 	{
 	  _tree = dynamic_cast<TTree*>(o);
 	  _treenames.push_back(dirname + string(_tree->GetName()));
-	  DBUG("gettree - tree: " + string(_tree->GetName()));
+	  DBUG("gettree - tree: " + _treenames.back());
 	}
       else if ( o->IsA()->InheritsFrom("TDirectory") )
 	{
 	  TDirectory* d = dynamic_cast<TDirectory*>(o);
-	  DBUG("gettree - dir: " + string(d->GetName()));
+	  DBUG("gettree - dirname: " + string(d->GetName()));
 	  
 	  if ( depth == 1 )
 	    dirname  = string(d->GetName()) + "/";
@@ -1402,11 +1402,22 @@ itreestream::_getleaf(TBranch* branch, TLeaf* leaf)
   v.branch  = branch;
   v.leaf    = leaf;
 
-  v.treename  = branch->GetTree()->GetName();
+  // get full path to tree
+  v.treename= branch->GetTree()->GetName();
+  TDirectory* dir = branch->GetTree()->GetDirectory();
+  if ( dir )
+    {
+      string dirname(dir->GetName());
+      if ( dirname != string(dir->GetFile()->GetName()) )
+	{
+	  if ( dirname != "" ) v.treename = dirname + "/" + v.treename;
+	}
+    }
+	 
   v.branchname= branch->GetName();
   v.leafname  = leaf->GetName();
   v.fullname  = v.treename + "/" + v.branchname;
-
+    
   // associate this field with the chain to which it belongs
   string key = v.treename;
   if ( _chainmap.find(key) == _chainmap.end() )
@@ -1729,8 +1740,8 @@ itreestream::str() const
   if ( list )
     for(int c=0; c < list->GetEntries(); c++)
       {
-	TTree* tree = (TTree*)list->At(c);
-	out << "Tree   " << tree->GetName()      << endl;
+	TTree* ptree = (TTree*)list->At(c);
+	out << "Tree   " << ptree->GetName()      << endl;
       }
   out << "Entries  " << _tree->GetEntries()   << endl;
   out << endl;
@@ -1995,9 +2006,86 @@ itreestream::_update()
       // We let Root handle vector types directly
       if ( field->iotype == 'v')
         {
-          field->chain->SetBranchAddress(field->branchname.c_str(), 
-					 &field->address, 
-					 &field->branch);
+	  switch(field->srctype)
+	    {
+	    case 'D':
+	      field->chain->SetBranchAddress(field->branchname.c_str(), 
+	    				     ((vector<double>**)&field->address), 
+	    				     &field->branch);	      
+	      break;
+        
+	    case 'F':
+	      field->chain->SetBranchAddress(field->branchname.c_str(), 
+	    				     ((vector<float>**)&field->address), 
+	    				     &field->branch);	 	      
+	      break;
+        
+	    case 'L':
+	      field->chain->SetBranchAddress(field->branchname.c_str(), 
+					     ((vector<long>**)&field->address), 
+					     &field->branch);
+	      break;
+
+	    case 'I':
+	      field->chain->SetBranchAddress(field->branchname.c_str(), 
+	    				     ((vector<int>**)&field->address), 
+	    				     &field->branch);	      
+	      break;
+
+	    case 'S':
+	      field->chain->SetBranchAddress(field->branchname.c_str(), 
+	    				     ((vector<short>**)&field->address), 
+	    				     &field->branch);	 	      
+	      break;
+
+	    case 'B':
+	      field->chain->SetBranchAddress(field->branchname.c_str(), 
+	    				     ((vector<char>**)&field->address), 
+	    				     &field->branch);		      
+	      break;
+
+	    case 'O':
+	      field->chain->SetBranchAddress(field->branchname.c_str(), 
+	    				     ((vector<bool>**)&field->address), 
+	    				     &field->branch);		      
+	      break;
+
+	    case 'C':
+	      field->chain->SetBranchAddress(field->branchname.c_str(), 
+	    				     ((vector<string>**)&field->address), 
+	    				     &field->branch);	
+	      break;
+
+	    case 'l':
+	      field->chain->SetBranchAddress(field->branchname.c_str(), 
+	    				     ((vector<unsigned long>**)&field->address), 
+	    				     &field->branch);	      
+	      break;
+        
+	    case 'i':
+	      field->chain->SetBranchAddress(field->branchname.c_str(), 
+	    				     ((vector<unsigned int>**)&field->address), 
+	    				     &field->branch);	      
+	      break;
+	      
+	    case 's':
+	      field->chain->SetBranchAddress(field->branchname.c_str(), 
+	    				     ((vector<unsigned short>**)&field->address),
+	    				     &field->branch);	      
+	      break;
+	      
+	    case 'b':
+	      field->chain->SetBranchAddress(field->branchname.c_str(), 
+	    				     ((vector<unsigned char>**)&field->address), 
+	    				     &field->branch);	      
+	      break;
+
+	    default:
+	      field->chain->SetBranchAddress(field->branchname.c_str(), 
+	    				     ((vector<double>**)&field->address), 
+	    				     &field->branch);	      
+	      break;
+	    }	  
         }
       else if ( field->maxsize < 1 )
         fatal("_update - external buffer for " 

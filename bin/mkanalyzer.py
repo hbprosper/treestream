@@ -892,15 +892,17 @@ def main():
             continue
 
         if rtype == "bool":
-            rtype = "int"
-        elif rtype == "long64":
+            rtype = "bool"
+        elif rtype == "ulong64":
             rtype = "long"
+        elif rtype == "long64":
+            rtype = "long"            
         elif rtype == "int32":
             rtype = "int"
         elif rtype == "uchar":
             rtype = "int"
         elif rtype == "uint":
-            rtype = "int"			
+            rtype = "unsigned int"			
 
         objname = ''
         fldname = ''
