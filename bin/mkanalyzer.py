@@ -25,6 +25,7 @@
 #          21-Feb-2018 HBP - fix Makefile to account for changes in how
 #                            ROOT and Mac OS treat environment variables
 #                          - protect against zero maxcount
+#          23-Mar-2019 HBP - Add user supplied cppflags to CPPFLAGS
 #-----------------------------------------------------------------------------
 import os, sys, re, posixpath
 from string import atof, atoi, replace, lower,\
@@ -34,14 +35,14 @@ from glob import glob
 #-----------------------------------------------------------------------------
 # Functions
 #-----------------------------------------------------------------------------
+VERSION = 'v2.0.1 23-Mar-2019'
 getvno = re.compile(r'[0-9]+$')
 
 def usage():
-    print '''
+    sys.exit('''
     Usage:
        mkanalyzer.py <analyzer-name> [variables.txt]
-    '''
-    sys.exit(0)
+    ''')
 
 def nameonly(s):
     return posixpath.splitext(posixpath.split(s)[1])[0]
@@ -183,7 +184,7 @@ TEMPLATE_H =\
 //----------------------------------------------------------------------------
 // File:        eventBuffer.h
 // Description: Analyzer header for ntuples created by TheNtupleMaker
-// Created:     %(time)s by mkanalyzer.py
+// Created:     %(time)s by mkanalyzer.py %(version)s
 // Author:      %(author)s
 //----------------------------------------------------------------------------
 #include <stdio.h>
@@ -367,7 +368,7 @@ TEMPLATE_CC =\
 // File:        %(name)s.cc
 // Description: Analyzer for simple ntuples, such as those created by
 //              TheNtupleMaker
-// Created:     %(time)s by mkanalyzer.py
+// Created:     %(time)s by mkanalyzer.py %(version)s
 // Author:      %(author)s
 //----------------------------------------------------------------------------
 #include "tnm.h"
@@ -440,7 +441,7 @@ PYTEMPLATE =\
 #  File:        %(name)s.py
 #  Description: Analyzer for simple ntuples, such as those created by
 #               TheNtupleMaker
-#  Created:     %(time)s by mkanalyzer.py
+#  Created:     %(time)s by mkanalyzer.py %(version)s
 #  Author:      %(author)s
 # ----------------------------------------------------------------------------
 import os, sys, re
@@ -510,7 +511,7 @@ except KeyboardInterrupt:
 
 MAKEFILE = '''#----------------------------------------------------------------------------
 # Description: Makefile to build analyzers
-# Created:     %(time)s by mkanalyzer.py
+# Created:     %(time)s by mkanalyzer.py %(version)s
 # Author:      %(author)s
 #----------------------------------------------------------------------------
 ifndef ROOTSYS
@@ -578,7 +579,7 @@ CINT	:= rootcint
 #-----------------------------------------------------------------------
 # 	Define paths to be searched for C++ header files (#include ....)
 #-----------------------------------------------------------------------
-CPPFLAGS:= -I. -I$(incdir) -I$(srcdir) $(shell root-config --cflags) 
+CPPFLAGS:= -I. -I$(incdir) -I$(srcdir) $(shell root-config --cflags) $(cppflags)
 
 # 	Define compiler flags to be used
 #	-c		perform compilation step only 
@@ -1221,7 +1222,8 @@ def main():
              'filename': filename,
              'time': ctime(),
              'author': AUTHOR,
-             'percent': '%'
+             'percent': '%',
+             'version': VERSION
              }
 
     record = MAKEFILE % names
@@ -1245,7 +1247,8 @@ def main():
              'selectimpl': join("", selectimpl, "\n"),
              'structvec':    join("", structvec, "\n"),
              'treename': treename,
-             'percent': '%' }
+             'percent': '%',
+             'version': VERSION}
 
     record = TEMPLATE_H % names
     outfilename = "%s/include/eventBuffer.h" % filename
