@@ -66,17 +66,17 @@ def getauthor():
 #-----------------------------------------------------------------------------
 AUTHOR = getauthor()
 
-if os.environ.has_key("CMSSW_BASE"):
-    CMSSW_BASE = os.environ["CMSSW_BASE"]
-    PACKAGE = "%s/src/PhysicsTools/TheNtupleMaker" % CMSSW_BASE
-    TREESTREAM_HPP = "%s/interface/treestream.h" % PACKAGE    
-    TREESTREAM_CPP = "%s/src/treestream.cc"  % PACKAGE
+#if os.environ.has_key("CMSSW_BASE"):
+#    CMSSW_BASE = os.environ["CMSSW_BASE"]
+#    PACKAGE = "%s/src/PhysicsTools/TheNtupleMaker" % CMSSW_BASE
+#    TREESTREAM_HPP = "%s/interface/treestream.h" % PACKAGE    
+#    TREESTREAM_CPP = "%s/src/treestream.cc"  % PACKAGE
     
-    TNM_HPP = "%s/interface/tnm.h" % PACKAGE
-    TNM_CPP = "%s/src/tnm.cc" % PACKAGE
-    TNM_PY  = "%s/python/tnm.py" % PACKAGE
-else:
-    if os.environ.has_key('TREESTREAM_PATH'):
+#    TNM_HPP = "%s/interface/tnm.h" % PACKAGE
+#    TNM_CPP = "%s/src/tnm.cc" % PACKAGE
+#    TNM_PY  = "%s/python/tnm.py" % PACKAGE
+#else:
+if os.environ.has_key('TREESTREAM_PATH'):
         area  = {'local': '%s' % os.environ['TREESTREAM_PATH']}
         TREESTREAM_HPP = "%(local)s/include/treestream.h" % area
         TREESTREAM_CPP = "%(local)s/src/treestream.cc" % area
@@ -84,7 +84,7 @@ else:
         TNM_HPP = "%(local)s/tnm/tnm.h"  % area
         TNM_CPP = "%(local)s/tnm/tnm.cc" % area
         TNM_PY  = "%(local)s/tnm/tnm.py" % area
-    else:
+else:
         TREESTREAM_HPP = "treestream.h"
         TREESTREAM_CPP = "treestream.cc"
         
