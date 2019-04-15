@@ -29,7 +29,10 @@ import os, sys, re
 from string import atof, atoi, replace, lower,\
      upper, joinfields, split, strip, find
 from time import sleep, ctime
-import ROOT
+try:
+    import ROOT
+except:
+    sys.exit("\n** Please setup ROOT, then try again!\n")
 # ----------------------------------------------------------------------------
 def usage():
     sys.exit('''
