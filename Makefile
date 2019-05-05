@@ -7,7 +7,7 @@ $(error *** Please set up Root)
 endif
 
 ifndef EXTERNAL
-$(error *** export EXTERNAL=to location of your external packages)
+EXTERNAL:=.
 endif
 # ----------------------------------------------------------------------------
 NAME	:= treestream
@@ -76,13 +76,14 @@ LIBS 	:= $(shell root-config --libs)
 LIBRARY	:= $(libdir)/lib$(NAME)$(LDEXT)
 # ----------------------------------------------------------------------------
 all: $(LIBRARY) $(TEST)
-
+ifdef EXTERNAL
 install:
 	cp $(bindir)/mk*.py $(EXTERNAL)/bin
 	cp $(incdir)/treestream.h $(EXTERNAL)/include
 	cp $(incdir)/pdg.h $(EXTERNAL)/include
 	cp $(libdir)/lib$(NAME)$(LDEXT) $(EXTERNAL)/lib
 	find $(libdir) -name "*.pcm" -exec mv {} $(EXTERNAL)/lib \;
+endif
 
 $(TEST)	: $(TEST).o
 	@echo ""
