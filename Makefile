@@ -3,7 +3,7 @@
 #         30 May 2015 HBP - standardize structure (src, lib, include) 
 # ----------------------------------------------------------------------------
 ifndef ROOTSYS
-	$(error *** Please set up Root)
+$(error *** Please set up Root)
 endif
 
 ifndef EXTERNAL
