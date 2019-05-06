@@ -776,7 +776,17 @@ def main():
     if argc < 1: usage()
 
     filename = nameonly(argv[0])
-
+    t = str.split(filename, '/')
+    force = False
+    if len(t) > 1:
+        filename = t[0]
+        if t[-1][0] in ['f', 'F']:
+            force = True
+            
+    if force:
+        print('** force re-copying of all files except the %s.cc' % \
+                  filename)
+        
     if argc > 1:
         varfilename = argv[1]
     else:
@@ -1191,30 +1201,34 @@ def main():
 
     # Put everything into a directory
 
-    cmd = '''
-    mkdir -p %(dir)s/tmp
-    mkdir -p %(dir)s/lib
-    mkdir -p %(dir)s/src
-    mkdir -p %(dir)s/python
-    mkdir -p %(dir)s/include
-    cp %(hpp)s %(dir)s/include
-    cp %(cpp)s %(dir)s/src
-    ''' % {'dir': filename,
-           'hpp': TREESTREAM_HPP,
-           'cpp': TREESTREAM_CPP}
-    os.system(cmd)
+    outfilename = '%(dir)s/include/treestream.h' % {'dir': filename}
+    if not os.path.exists(outfilename) or force:
+        print("**** HERE ****")
+        cmd = '''
+        mkdir -p %(dir)s/tmp
+        mkdir -p %(dir)s/lib
+        mkdir -p %(dir)s/src
+        mkdir -p %(dir)s/python
+        mkdir -p %(dir)s/include
+        cp %(hpp)s %(dir)s/include
+        cp %(cpp)s %(dir)s/src
+        ''' % {'dir': filename,
+            'hpp': TREESTREAM_HPP,
+            'cpp': TREESTREAM_CPP}
+        os.system(cmd)
 
-    cmd = '''
-    cp %(hpp)s %(dir)s/include
-    cp %(cpp)s %(dir)s/src
-    cp %(py)s  %(dir)s/python
-    ''' % {'dir': filename,
-           'hpp': TNM_HPP,
-           'cpp': TNM_CPP,
-           'py' : TNM_PY
-           }
-    os.system(cmd)
-    
+    outfilename = '%(dir)s/include/tnm.h' % {'dir': filename}
+    if not os.path.exists(outfilename) or force:            
+        cmd = '''
+        cp %(hpp)s %(dir)s/include
+        cp %(cpp)s %(dir)s/src
+        cp %(py)s  %(dir)s/python
+        ''' % {'dir': filename,
+            'hpp': TNM_HPP,
+            'cpp': TNM_CPP,
+            'py' : TNM_PY
+            }
+        os.system(cmd)
     
     # Create Makefile
 
@@ -1250,26 +1264,30 @@ def main():
              'percent': '%',
              'version': VERSION}
 
+    # always recreate eventBuffer
     record = TEMPLATE_H % names
     outfilename = "%s/include/eventBuffer.h" % filename
     open(outfilename,"w").write(record)
 
     # Create cc file if one does not yet exist
     outfilename = "%s/%s.cc" % (filename, filename)
-    if not os.path.exists(outfilename):
+    if not os.path.exists(outfilename) or force:
         record = TEMPLATE_CC % names
         open(outfilename,"w").write(record)
 
     # Create README
     outfilename = "%s/README" % filename
-    record = README % names
-    open(outfilename,"w").write(record)
+    if not os.path.exists(outfilename) or force:    
+        record = README % names
+        open(outfilename,"w").write(record)
 
     # write out linkdef
+
     outfilename = "%s/include/linkdef.h" % filename
-    names['pragma'] = join("", pragma, "\n")       
-    record = LINKDEF % names
-    open(outfilename,"w").write(record)
+    if not os.path.exists(outfilename) or force:
+        names['pragma'] = join("", pragma, "\n")       
+        record = LINKDEF % names
+        open(outfilename,"w").write(record)
     
     # write setup.sh
     record = '''DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -1278,15 +1296,27 @@ export PYTHONPATH=$TNM_PATH/python:$PYTHONPATH
 export LD_LIBRARY_PATH=$TNM_PATH/lib:$LD_LIBRARY_PATH
 echo "TNM_PATH=$TNM_PATH"
 '''
-    outfilename = "%s/setup.sh" % filename
-    open(outfilename,"w").write(record)
+    outfilename = "%s/setup.sh" % filename    
+    if not os.path.exists(outfilename) or force:    
+        open(outfilename,"w").write(record)
+
+    # write setup.csh
+    record = '''set DIR=`pwd` )"
+setenv TNM_PATH ${DIR}
+setenv PYTHONPATH ${TNM_PATH}/python:${PYTHONPATH}
+setenv LD_LIBRARY_PATH ${TNM_PATH}/lib:${LD_LIBRARY_PATH}
+echo "TNM_PATH=${TNM_PATH}"
+'''
+    outfilename = "%s/setup.csh" % filename
+    if not os.path.exists(outfilename) or force:    
+        open(outfilename,"w").write(record)        
 
     # Create python program if one does not yet exist
     COLOR      ="\x1b[0;32;48m"
     RESETCOLOR ="\x1b[0m"
     
     outfilename = "%s/%s.py" % (filename, filename)
-    if not os.path.exists(outfilename):
+    if not os.path.exists(outfilename) or force:
         record = PYTEMPLATE % names
         open(outfilename,"w").write(record)
         os.system("chmod +x %s" % outfilename)
