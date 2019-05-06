@@ -1203,7 +1203,6 @@ def main():
 
     outfilename = '%(dir)s/include/treestream.h' % {'dir': filename}
     if not os.path.exists(outfilename) or force:
-        print("**** HERE ****")
         cmd = '''
         mkdir -p %(dir)s/tmp
         mkdir -p %(dir)s/lib
