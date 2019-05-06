@@ -1300,7 +1300,7 @@ echo "TNM_PATH=$TNM_PATH"
         open(outfilename,"w").write(record)
 
     # write setup.csh
-    record = '''set DIR=`pwd` )"
+    record = '''set DIR=`pwd`
 setenv TNM_PATH ${DIR}
 setenv PYTHONPATH ${TNM_PATH}/python:${PYTHONPATH}
 setenv LD_LIBRARY_PATH ${TNM_PATH}/lib:${LD_LIBRARY_PATH}
