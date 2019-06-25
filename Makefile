@@ -17,7 +17,9 @@ libdir	:= lib
 bindir	:= bin
 testdir	:= test
 
-TEST	:= $(testdir)/test$(NAME)
+SRCTESTS:= $(testdir)/testtreestream.cc $(testdir)/testdelphes.cc
+OBJTESTS:= $(SRCTESTS:.cc=.o)
+TESTS	:= $(SRCTESTS:.cc=)
 
 $(shell mkdir -p lib)
 
@@ -75,7 +77,7 @@ LDFLAGS += $(ROOTFLAGS) -Wl,-rpath,$(ROOTSYS)/lib
 LIBS 	:= $(shell root-config --libs)
 LIBRARY	:= $(libdir)/lib$(NAME)$(LDEXT)
 # ----------------------------------------------------------------------------
-all: $(LIBRARY) $(TEST)
+all: $(LIBRARY) $(TESTS)
 ifdef EXTERNAL
 install:
 	cp $(bindir)/mk*.py $(EXTERNAL)/bin
@@ -85,12 +87,12 @@ install:
 	find $(libdir) -name "*.pcm" -exec mv {} $(EXTERNAL)/lib \;
 endif
 
-$(TEST)	: $(TEST).o
+$(TESTS)	: %	:	%.o
 	@echo ""
 	@echo "=> Linking test program $@"
 	$(LD) $(ROOTFLAGS) $^ -L$(libdir) -l$(NAME) $(LIBS) -o $@
 
-$(TEST).o	: 	$(TEST).cc
+$(OBJTESTS)	: %.o	:	%.cc
 	@echo ""
 	@echo "=> Compiling $<"
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
