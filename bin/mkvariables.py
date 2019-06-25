@@ -165,7 +165,8 @@ def main():
             sys.exit("\t**hmmm...not sure what to do with:\n\t%s\n\tchoi!" % x)
             
         # get branch type in C++ form (not, e.g.,  Double_t)
-        btype = replace(lower(btype), "_t", "")
+        if not (btype in ['TLorentzVector', 'TRefArray']):
+            btype = replace(lower(btype), "_t", "")
         vtype = getvtype.findall(btype)
         if len(vtype) == 1:
             btype = vtype[0] # vector type

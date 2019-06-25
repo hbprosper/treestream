@@ -72,7 +72,7 @@ struct Field
   Field() 
   : srctype(' '),
     iotype(' '),
-    isvector(false),
+    isvector(0),
     iscounter(false),
     maxsize(0),
     chain(0),
@@ -82,17 +82,19 @@ struct Field
     treename(""),
     branchname(""),
     leafname(""),
-    fullname("")
+    fullname(""),
+    countername("")
   {}
   
   virtual ~Field() {}
   
   char   srctype;         /// Source type (type of user name/value pair)
   char   iotype;          /// Input/Output type
-  bool   isvector;        /// True if vector type
+  int    isvector;        /// 0 scaler, 1 vector, 2 2-d vector type
   bool   iscounter;       /// true if this is a leaf counter
   int    maxsize;         /// Maximum number of elements in source variable
-
+  int    size;            /// Size of field
+  
   TChain*  chain;         /// Chain to which this field is bound
   TBranch* branch;        /// Branch pertaining to source
   TLeaf*   leaf;          /// Leaf pertaining to source
@@ -102,6 +104,7 @@ struct Field
   std::string branchname; /// Name of branch
   std::string leafname;   /// Name of T-leaf!
   std::string fullname;   /// Full name of branch/T-leaf!
+  std::string countername; /// Name of leaf counter or null
 };
 
 template <class T>
@@ -109,12 +112,11 @@ struct FieldBuffer : public Field
 {
   FieldBuffer() : Field(), value(std::vector<T>()) {}
   virtual ~FieldBuffer() {}
-  
   std::vector<T> value;
 };
 
 typedef std::map<std::string, Field>  Data;
-typedef std::map<std::string, Field*> SelectedData;
+typedef std::map<std::string, Field*>  SelectedData;
 
 //----------------------------------------------------------------------------
 
@@ -266,6 +268,30 @@ class itreestream
   ///
   void   select(std::string namen, std::vector<unsigned short>& data);
 
+
+  /** Specify the name of a vector-valued array variable to be read and give the
+      address of a buffer into which its values are to be written. 
+  */
+  void   select(std::string namen, std::vector<std::vector<double> >& data);
+
+  ///
+  void   select(std::string namen, std::vector<std::vector<float> >& data);
+
+  //void   select(std::string namen, std::vector<float*>& data);
+  
+  ///
+  void   select(std::string namen, std::vector<std::vector<long> >& data);
+
+  ///
+  void   select(std::string namen, std::vector<std::vector<int> >& data);
+
+  ///
+  void   select(std::string namen, std::vector<std::vector<unsigned long> >& data);
+
+  ///
+  void   select(std::string namen, std::vector<std::vector<unsigned int> >& data);
+
+  
   /** Read tree with ordinal value <i>entry</i>. 
       Return the ordinal value of the
       entry within the current tree.
@@ -354,7 +380,7 @@ class itreestream
   void _getbranches(TBranch* branch, int depth);
   void _getleaf    (TBranch* branch, TLeaf* leaf=0);
   void _select     (std::string name, void* address, int maxsize, 
-                    char srctype, bool isvector=false);
+                    char srctype, int isvector=0);
   void _update();
   void _gettree(TDirectory* dir, int depth=0, std::string name="");
 
@@ -406,16 +432,10 @@ class otreestream
   void   add(std::string namen, long& datum);
 
   ///
-  //void   add(std::string namen, unsigned long& datum);
-  
-  ///
   void   add(std::string namen, short& datum);
   
   ///
   void   add(std::string namen, unsigned short& datum);
-
-  ///
-  //void   add(std::string namen, char& datum);
 
   ///
   void   add(std::string namen, bool& datum);
@@ -423,7 +443,7 @@ class otreestream
   /** Specify the name of a variable to be added to the tree and the address 
       from which its value is to be read. 
   */
-  void   add(std::string namen, double& datum, char iotype='D');
+  void   add(std::string namen, double& datum);
 
   ///
   void   add(std::string namen, float& datum);
@@ -448,13 +468,7 @@ class otreestream
   void   add(std::string namen, std::vector<short>& data);
 
   ///
-  //void   add(std::string namen, std::vector<char>& data);
-
-  ///
   void   add(std::string namen, std::vector<bool>& data);
-
-  ///
-  //void   add(std::string namen, std::vector<unsigned long>& data);
 
   ///
   void   add(std::string namen, std::vector<unsigned int>& data);
@@ -463,7 +477,7 @@ class otreestream
   void   add(std::string namen, std::vector<unsigned short>& data);
 
   ///
-  void   add(std::string namen, std::vector<double>& data, char iotype='D');
+  void   add(std::string namen, std::vector<double>& data);
 
   ///
   void   add(std::string namen, std::vector<float>& data);
@@ -533,7 +547,7 @@ class otreestream
   std::vector<int*> strsize;
 
   void _add(std::string name, void* address, int maxsize,
-	    char srctype, char iotype, bool isvector=false);
+	    char srctype, char iotype, int isvector=0);
 };
 
 std::ostream& operator<<(std::ostream& os, const otreestream& tuple);
