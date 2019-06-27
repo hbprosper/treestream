@@ -254,19 +254,16 @@ struct eventBuffer
             sin >> key;
             if ( sin )
               {
-                if ( choose.find(key) != choose.end() )
-                  {
-                    choose[key] = true;
-                    std::cout << "\t" << key << std::endl;
-                  }
-                else
-                  {
-                    std::cout << "\t** error ** unknown branch: "
-                              << key
-                              << std::endl
-                              << "Please fix and try again. Bye!"
-                              << std::endl;
-                    exit(0);
+		        std::map<std::string, bool>::iterator it;
+		        for(it = choose.begin(); it != choose.end(); it++)
+		          {
+		            if ( it->first.length() > key.length() )
+		              {
+			            if ( it->first.substr(0, key.size()) == key )
+			              {
+			                choose[it->first] = true;
+			              }
+		              }
                   }
               }
           }

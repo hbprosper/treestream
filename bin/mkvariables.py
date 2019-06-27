@@ -76,6 +76,7 @@ patname  = re.compile('(?<=pat)[a-z]+[1-9]*')
 reconame = re.compile('(?<=reco)[a-z]+[1-9]*')
 genname  = re.compile('^(gen[a-z]+|edm[a-z]+)')
 countname= re.compile('(?<=^n)(pat|reco)')
+arraytype= re.compile('\[[0-9]+\]')
 # ----------------------------------------------------------------------------
 def main():
     # get command line arguments
@@ -132,6 +133,9 @@ def main():
         out.write("Tree %s\n" % name)
     out.write("\n")
 
+    skipped_at_least_one = False    
+    skipped = open("variables_skipped.txt", "w")
+    
     # get ntuple listing
     dupname = {} # to keep track of duplicate names
 
@@ -165,8 +169,16 @@ def main():
             sys.exit("\t**hmmm...not sure what to do with:\n\t%s\n\tchoi!" % x)
             
         # get branch type in C++ form (not, e.g.,  Double_t)
-        if not (btype in ['TLorentzVector', 'TRefArray']):
-            btype = replace(lower(btype), "_t", "")
+        if btype in ['TLorentzVector', 'TRefArray', 'TRef']:
+            skipped.write('%s\t%s\t%s\n' % (x[1], x[3], x[4]))
+            skipped_at_least_one = True
+            continue
+        if len(arraytype.findall(branch)) > 0:
+            skipped.write('%s\t%s\t%s\n' % (x[1], x[3], x[4]))
+            skipped_at_least_one = True
+            continue            
+            
+        btype = replace(lower(btype), "_t", "")
         vtype = getvtype.findall(btype)
         if len(vtype) == 1:
             btype = vtype[0] # vector type
@@ -224,5 +236,9 @@ def main():
         # write out info for current branch/leaf
         record = "%s\t%s\t%s %d %s\n" % (btype, branch, name, maxcount, lc)
         out.write(record)
+    out.close()
+    skipped.close()
+    if not skipped_at_least_one:
+        os.system("rm -rf variables_skipped.txt")
 # ----------------------------------------------------------------------------
 main()
