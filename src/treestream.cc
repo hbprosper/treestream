@@ -56,7 +56,9 @@
 //                          before float version corrects the problem. (using
 //                          clang++ version clang-802.0.42.
 //          20-Jan-2019 HBP avoid ROOT warning when handling stored vector types.
-//          23-Jun-2019 HBO allow reading of simple STL vector types from file.
+//          23-Jun-2019 HBP allow reading of simple STL vector types from file.
+//          18-Jan-2020 HBP in ROOT 6.16/00 it seems one must store leaf counter
+//                          explicitly. 
 //----------------------------------------------------------------------------
 #ifdef PROJECT_NAME
 #include <boost/regex.hpp>
@@ -2355,36 +2357,39 @@ otreestream::store()
       if ( DEBUGLEVEL > 0 )
 	cout << "commit( " + string(field->leaf->GetName()) << " )" << endl;
 
-      // if this is a leaf counter, continue since the leaf count is set by the size
-      // field of a branch with that leaf counter.
-      
-      if ( field->iscounter ) continue;
+      // if this is a leaf counter; apparently, need to store explicitly (Root v6.16/00)
+      if ( field->iscounter )
+	{
+	  fromexternal<int>(field);
+	  continue;
+	}
       
       // Ok, get the count for this variable.
       int len = getexsize(field);
       if ( DEBUGLEVEL > 0 )
-        cout << "\tcommit size: " << len 
-             << "\tfield->maxsize: " << field->maxsize << endl;
-
+	cout << "\tcommit size: " << len 
+	     << "\tfield->maxsize: " << field->maxsize << endl;
+      
       field->size = min(len, field->maxsize); // update count
 
       if ( DEBUGLEVEL > 0 )
 	cout << "\tfield->size: " << field->size << endl;      
-
+      
       // If the variable has a leafcounter update size field of the leaf counter
       int flag = 0;
       TLeaf* leafcounter = field->leaf->GetLeafCounter(flag);
       if ( leafcounter != 0 )
-        {
-          string name_(leafcounter->GetName());
-	  if ( DEBUGLEVEL > 0 )	  
-	    cout << "\tfound leaf counter( " << name_ << " ) size: " << field->size << endl;
-
-          if ( selecteddata.find(name_) != selecteddata.end() )
+	{
+	  string name_(leafcounter->GetName());
+	  if ( DEBUGLEVEL > 0 )
+	    cout << "\tfound leaf counter( " << name_ << " ) size: " << field->size
+		 << "\tfor " << field->leaf->GetName() << endl;
+	  if ( selecteddata.find(name_) != selecteddata.end() )
 	    selecteddata[name_]->size = field->size;
 	  else
 	    fatal("no selectedata structure for leaf count " + name_);
-        }
+	}
+       
 
       
       // Copy data to internal buffers from external buffers

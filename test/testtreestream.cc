@@ -31,12 +31,12 @@ void write_ntuple(string filename="test.root", string treename="Events")
 
   double HT = 0;
   int njet  = 0;
-  vector<double> jetet(20);
+  vector<float> jetet(20);
   string comment(80, ' ');
 
   stream.add("HT", HT);  
   stream.add("njet", njet);
-  stream.add("jetEt[njet]", jetet);
+  stream.add("jetet[njet]", jetet);
   stream.add("comment", comment);
   
   TRandom3 rand;
@@ -66,6 +66,7 @@ void write_ntuple(string filename="test.root", string treename="Events")
 	       << setw(5) << jetet.size()  
 	       << setw(10)<< HT
 	       << " (" << comment << ")"
+	       << " njet = " << njet	    
 	       << endl;
 	}
     }
@@ -79,11 +80,13 @@ void read_ntuple(string filename="test.root", string treename="Events")
   int entries = stream.entries();
   stream.ls();
 
+  int njet;
   double HT;
   vector<float> jetet(20);
   string comment(80, ' ');
 
-  stream.select("jetEt", jetet);
+  stream.select("njet", njet);
+  stream.select("jetet", jetet);
   stream.select("comment", comment);
   stream.select("HT", HT);
 
@@ -94,9 +97,10 @@ void read_ntuple(string filename="test.root", string treename="Events")
 
       if ( entry % step == 0 )
         cout << setw(5) << entry 
-             << setw(5) << jetet.size()  
+	     << setw(5) << jetet.size() 
              << setw(10)<< HT
-             << " (" << comment << ")"
+	     << " (" << comment << ")"
+	     << " njet = " << njet
              << endl;
     }
   stream.close();
@@ -104,8 +108,10 @@ void read_ntuple(string filename="test.root", string treename="Events")
 //----------------------------------------------------------------------------
 int main()
 {
-  cout << "treestream: read/write test" << endl;
+  cout << endl << "treestream: WRITE test" << endl;
   write_ntuple();
+
+  cout << endl << "treestream: READ  test" << endl;  
   read_ntuple();
   return 0;
 }
