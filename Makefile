@@ -29,9 +29,9 @@ SRCS	:=  	$(srcdir)/treestream.cc \
 		$(srcdir)/pdg.cc \
 		$(srcdir)/testme.cc
 
-CINTSRCS:= $(wildcard $(srcdir)/*_dict.cc)
+CINTSRCS	:= $(wildcard $(srcdir)/*_dict.cc)
 
-OTHERSRCS:= $(filter-out $(CINTSRCS) $(SRCS),$(wildcard $(srcdir)/*.cc))
+OTHERSRCS	:= $(filter-out $(CINTSRCS) $(SRCS),$(wildcard $(srcdir)/*.cc))
 
 # list of dictionaries to be created
 DICTIONARIES	:= $(SRCS:.cc=_dict.cc)
@@ -56,10 +56,8 @@ else
 CXX		:= g++
 LD		:= g++
 endif
-CPPFLAGS	:= -I. -I$(incdir)
-CXXFLAGS	:= -O -Wall -fPIC -g -ansi -Wshadow -Wextra \
-$(shell root-config --cflags) \
-$(shell python-config --cflags)
+CPPFLAGS	:= -I. -I$(incdir) $(shell root-config --cflags)
+CXXFLAGS	:= -c -g -O2 -ansi -O -Wall -pipe -fPIC
 LDFLAGS		:= -g
 # ----------------------------------------------------------------------------
 # which operating system?

@@ -28,8 +28,7 @@
 #          23-Mar-2019 HBP - Add user supplied cppflags to CPPFLAGS
 #-----------------------------------------------------------------------------
 import os, sys, re, posixpath
-from string import atof, atoi, replace, lower,\
-     upper, joinfields, split, strip, find
+#from string import lower, split, strip, find
 from time import sleep, ctime
 from glob import glob
 #-----------------------------------------------------------------------------
@@ -55,7 +54,7 @@ def join(left, a, right):
 
 def getauthor():
     regex  = re.compile(r'(?<=[0-9]:)[A-Z]+[a-zA-Z. ]+')
-    record = strip(os.popen("which getent").read())
+    record = str.strip(os.popen("which getent").read())
     if record != "":
         record = strip(os.popen("getent passwd $USER").read())
     author = "Shakespeare's ghost"
@@ -76,7 +75,7 @@ AUTHOR = getauthor()
 #    TNM_CPP = "%s/src/tnm.cc" % PACKAGE
 #    TNM_PY  = "%s/python/tnm.py" % PACKAGE
 #else:
-if os.environ.has_key('TREESTREAM_PATH'):
+if 'TREESTREAM_PATH' in os.environ:
         area  = {'local': '%s' % os.environ['TREESTREAM_PATH']}
         TREESTREAM_HPP = "%(local)s/include/treestream.h" % area
         TREESTREAM_CPP = "%(local)s/src/treestream.cc" % area
@@ -95,9 +94,9 @@ else:
 # Make sure that we can find treestream etc.
 
 if not os.path.exists(TREESTREAM_HPP):
-    print "\n** error ** - required file:\n%s\nNOT found!" % \
-          TREESTREAM_HPP
-    print '''
+    print("\n** error ** - required file:\n%s\nNOT found!" % \
+          TREESTREAM_HPP)
+    sys.exit('''
     try installing treestream package:
     
     cd
@@ -112,13 +111,11 @@ if not os.path.exists(TREESTREAM_HPP):
     cd treestream
     make
     make install
-    '''
-    sys.exit(0)
+    ''')
 
 if not os.path.exists(TREESTREAM_CPP):
-    print "\n** error ** - required file:\n\t%s\n\t\tNOT found!" % \
-          TREESTREAM_CPP
-    sys.exit(0)
+    sys.exit("\n** error ** - required file:\n\t%s\n\t\tNOT found!" % \
+          TREESTREAM_CPP)
 #-----------------------------------------------------------------------------
 LINKDEF = \
   '''
@@ -416,13 +413,6 @@ int main(int argc, char** argv)
       // read an event into event buffer
       ev.read(entry);
 
-      // Uncomment the following line if you wish to copy variables into
-      // structs. See the file eventBuffer.h to find out what structs
-      // are available. Alternatively, you can call individual fill functions,
-      // such as, ev.fillElectrons().
-      //ev.fillObjects();
-
-      // analysis
     }
     
   ev.close();
@@ -436,14 +426,13 @@ PYTEMPLATE =\
 '''#!/usr/bin/env python
 # ----------------------------------------------------------------------------
 #  File:        %(name)s.py
-#  Description: Analyzer for simple ntuples, such as those created by
-#               TheNtupleMaker
+#  Description: Analyzer for simple ROOT ntuples
 #  Created:     %(time)s by mkanalyzer.py %(version)s
 #  Author:      %(author)s
 # ----------------------------------------------------------------------------
 import os, sys, re
-from tnm import *
-from ROOT import *
+import tnm
+import ROOT
 # ----------------------------------------------------------------------------
 # -- Constants, procedures and functions
 # ----------------------------------------------------------------------------
@@ -452,13 +441,13 @@ from ROOT import *
 # ----------------------------------------------------------------------------
 def main():
 
-    cl = commandLine()
+    cl = ROOT.commandLine()
     
     # Get names of ntuple files to be processed
-    filenames = fileNames(cl.filelist)
+    filenames = ROOT.fileNames(cl.filelist)
 
     # Create tree reader
-    stream = itreestream(filenames, "%(treename)s")
+    stream = ROOT.itreestream(filenames, "%(treename)s")
     if not stream.good():
         error("can't read input files")
 
@@ -467,35 +456,26 @@ def main():
     # Use second argument to select specific branches
     # Example:
     #   varlist = 'Jet_PT Jet_Eta Jet_Phi'
-    #   ev = eventBuffer(stream, varlist)
+    #   ev = ROOT.eventBuffer(stream, varlist)
     #
-    ev = eventBuffer(stream)
+    ev = ROOT.eventBuffer(stream)
 
     nevents = ev.size()
-    print "number of events:", nevents
+    print("number of events:", nevents)
 
     # Create file to store histograms
-    of = outputFile(cl.outputfilename)
+    of = ROOT.outputFile(cl.outputfilename)
 
     # ------------------------------------------------------------------------
     # Define histograms
     # ------------------------------------------------------------------------
-    setStyle()
+    ROOT.setStyle()
 
     # ------------------------------------------------------------------------
     # Loop over events
     # ------------------------------------------------------------------------
-    
-    for entry in xrange(nevents):
+    for entry in range(nevents):
         ev.read(entry)
-
-        # Uncomment the following line if you wish to copy variables into
-        # structs. See the header eventBuffer.h to find out what structs
-        # are available. Alternatively, you can call individual fill
-        # functions, such as ev.fillJets().
-        #ev.fillObjects();
-
-        # analysis
         
     ev.close()
     of.close()
@@ -503,7 +483,7 @@ def main():
 try:
    main()
 except KeyboardInterrupt:
-   print "bye!"
+   print("bye!")
 '''
 
 MAKEFILE = '''#----------------------------------------------------------------------------
@@ -764,7 +744,7 @@ isvector = re.compile('(?<!std::)vector')
 getvtype = re.compile('(?<=vector[<]).*(?=[>])')
 #------------------------------------------------------------------------------
 def main():
-    print "\n\tmkanalyzer.py"
+    print("\n\tmkanalyzer.py")
 
     # Decode command line
 
@@ -795,25 +775,26 @@ def main():
     macroMode = argc > 2
 
     # Read variable names
-    records = map(strip, open(varfilename, "r").readlines())
+    records = [str.strip(x) for x in open(varfilename, "r").readlines() ]
+    #records = map(str.strip, open(varfilename, "r").readlines())
 
     # Get tree name(s)
-    t = split(records[0])
-    if lower(t[0]) == "tree":
+    t = str.split(records[0])
+    if str.lower(t[0]) == "tree":
         treename = t[1]
     else:
         treename = "Events"
     start = 1
     for record in records[1:]:
-        record = strip(record)
+        record = str.strip(record)
         if record == "": break
-        t = split(record)
-        if lower(t[0]) == "tree":
+        t = str.split(record)
+        if str.lower(t[0]) == "tree":
             treename += " %s" % t[1]
             start += 1
 
     # check whether we have a single tree
-    single_tree = len(split(treename)) == 1
+    single_tree = len(str.split(treename)) == 1
     
     # --------------------------------------------------------------------
     # Done with header, so loop over branch names
@@ -826,21 +807,21 @@ def main():
     records = records[start:]
     tokens = []
     tmpmap = {}
-    for index in xrange(len(records)):
+    for index in range(len(records)):
         record = records[index]
         if record == "": continue
 
         # split record into its fields
         # varname = variable name as determined by mkvariables.py
-        tokens.append(split(record))
+        tokens.append(str.split(record))
         varname = tokens[-1][2]
             
         # varname should have the format
         # <objname>_<field-name>
-        t = split(varname,'_')
+        t = str.split(varname,'_')
         if len(t) > 1: # Need at least two fields for a struct
             key = t[0]
-            if not tmpmap.has_key(key): tmpmap[key] = 0
+            if not (key in tmpmap): tmpmap[key] = 0
             tmpmap[key] += 1
 
     # If we have at least two fields, we'll create a struct
@@ -868,7 +849,7 @@ def main():
             countername = None
 
         # set up count
-        count = atoi(count) # change type to an integer
+        count = int(count) # change type to an integer
         if count > 1:
             from math import sqrt
             count = int(count + 5*sqrt(count))
@@ -880,22 +861,22 @@ def main():
         
         # make sure names are unique. If they aren't bail!
 
-        if varmap.has_key(varname):
+        if varname in varmap:
             varnum += 1
-            print "** warning ** duplicate name %s; "\
-            "changed to %s%d" % (varname, varname, varnum)
+            print("** warning ** duplicate name %s; "\
+            "changed to %s%d" % (varname, varname, varnum))
             varname = '%s%d' % (varname, varnum)
             
         # do something about annoying types
 
-        if find(varname, '[') > -1 and count > 1:
+        if str.find(varname, '[') > -1 and count > 1:
             skipped += "%s[%d]\n" % (branchname, count)
             continue
-        if find(lower(rtype), 'ref') > -1:
+        if str.find(str.lower(rtype), 'ref') > -1:
             skipped += "%s[%d]\n" % (branchname, count)
             continue
 
-        if find(lower(rtype), 'lorentz') > -1:
+        if str.find(str.lower(rtype), 'lorentz') > -1:
             skipped += "%s[%d]\n" % (branchname, count)
             continue
 
@@ -916,21 +897,21 @@ def main():
         fldname = ''
 
         # get object and field names
-        t = split(varname,'_')
+        t = str.split(varname,'_')
         if len(t) > 0:
             # we have at least two fields in varname
             key = t[0]
-            if structname.has_key(key):
+            if key in structname:
 
                 # This branch potentially belongs to a struct.
                 objname = key
                 # Make sure the count for this branch matches that
                 # of existing struct
-                if not usednames.has_key(objname):
+                if not (objname in usednames):
                     usednames[objname] = count;
 
                 if usednames[objname] == count:
-                    fldname = replace(varname, '%s_' % objname, '')
+                    fldname = str.replace(varname, '%s_' % objname, '')
                 else:
                     objname = ''
                     fldname = ''
@@ -946,7 +927,7 @@ def main():
                 if fldname[0] in ['0','1','2','3','4','5','6','7','8','9']:
                     fldname = 'f%s' % fldname
 
-                if not vectormap.has_key(objname): vectormap[objname] = []	
+                if not (objname in vectormap): vectormap[objname] = []	
                 vectormap[objname].append((rtype,
                                                fldname,
                                                varname,
@@ -960,7 +941,7 @@ def main():
         os.system("rm -rf variables_skipped.txt")
         
     # Declare all variables
-    keys = varmap.keys()
+    keys = [ x for x in varmap]
     keys.sort()
     declarevec= []
     declare   = []
@@ -1021,7 +1002,7 @@ def main():
                 impl.append('')
 
         if single_tree:
-            choosename = split(branchname, '/')[-1]
+            choosename = str.split(branchname, '/')[-1]
         else:
             choosename = branchname
         choose.append('  choose["%s"]\t= DEFAULT;' % choosename)
@@ -1038,7 +1019,7 @@ def main():
 
         else:
             # this is either a vector or a variable length array
-            if find(rtype, 'vector') > -1:
+            if str.find(rtype, 'vector') > -1:
                 # VECTOR
                 rtype = isvector.sub("std::vector", rtype)
                 vtype = getvectype.findall(rtype)
@@ -1071,7 +1052,7 @@ def main():
     # Create structs for vector variables
 
     pragma = []
-    keys = vectormap.keys()
+    keys = [x for x in vectormap]
     keys.sort()
     structvec  = []	
     structdecl = []
@@ -1173,7 +1154,7 @@ def main():
 
     if macroMode:
 
-        names = {'NAME': upper(filename),
+        names = {'NAME': str.upper(filename),
                  'name': filename,
                  'time': ctime(),
                  'author': AUTHOR,
@@ -1242,7 +1223,7 @@ def main():
     # Create C++ code
 
     declarevec += [""] + declare
-    names = {'NAME': upper(filename),
+    names = {'NAME': str.upper(filename),
              'name': filename,
              'time': ctime(),
              'author': AUTHOR,
@@ -1318,11 +1299,11 @@ echo "TNM_PATH=${TNM_PATH}"
         os.system("chmod +x %s" % outfilename)
 
     fname = '%s%s%s' % (COLOR, filename, RESETCOLOR)
-    print "\tcreated analysis directory: %s" % fname
-    print "\tdo"
-    print "\t  cd %s" % fname
-    print "\t  make"
-    print "\tto build shared library libtnm.so\n"
+    print("\tcreated analysis directory: %s" % fname)
+    print("\tdo")
+    print("\t  cd %s" % fname)
+    print("\t  make")
+    print("\tto build shared library libtnm.so\n")
 #------------------------------------------------------------------------------
 main()
 

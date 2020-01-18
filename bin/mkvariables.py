@@ -24,10 +24,9 @@
 #               03-Dec-2017 HBP add name of leaf counter
 #               02-Feb-2018 HBP no need to write out leaf counters separately.
 #               22-Feb-2018 HBP adapt to improved treestream listing
+#               17-Jan-2020 HBP make compatible with Python 3
 # ----------------------------------------------------------------------------
 import os, sys, re
-from string import atof, atoi, replace, lower,\
-     upper, joinfields, split, strip, find
 from time import sleep, ctime
 try:
     import ROOT
@@ -48,11 +47,11 @@ try:
     from PhysicsTools.TheNtupleMaker.AutoLoader import *
 except:
     try:
-        print "\tloading treestream\n"
+        print("\tloading treestream\n")
         ROOT.gSystem.Load("$TREESTREAM_PATH/lib/libtreestream")
     except:
-        print "\t** libtreestream not found"
-        print '''
+        print("\t** libtreestream not found")
+        sys.exit('''
     try installing the treestream package:
     
     cd
@@ -66,8 +65,7 @@ except:
     cd treestream
     make
     make install
-    '''        
-        sys.exit(0)
+    ''')        
 # ----------------------------------------------------------------------------
 # extract vector type from vector<type>
 getvtype = re.compile('(?<=vector[<]).+(?=[>])')
@@ -101,7 +99,7 @@ def main():
     if argc > 1:
         # Can have more than one tree
         treename = joinfields(argv[1:], ' ')
-        print treename
+        print(treename)
         stream   = ROOT.itreestream(filename, treename)
         if not stream.good():
             sys.exit("\t** hmmmm...something amiss here!")
@@ -114,18 +112,18 @@ def main():
             sys.exit("\t** hmmmm...something amiss here!" )
         
         treename = stream.tree().GetName()
-        tname    = split(treename)
+        tname    = str.split(treename)
 
     # list branches and leaves
     stream.ls()
 
     # write out variables.txt after scanning ntuple listing
     print
-    print "==> file: %s" % filename
+    print("==> file: %s" % filename)
 
     for name in tname:
-        print "==> tree: %s" % name
-    print "==> output: variables.txt"
+        print("==> tree: %s" % name)
+    print("==> output: variables.txt")
 
     out = open("variables.txt", "w")
     out.write("Tree %s\t%s\n" % (tname[0], ctime()))
@@ -139,7 +137,7 @@ def main():
     # get ntuple listing
     dupname = {} # to keep track of duplicate names
 
-    records = map(split, split(stream.str(),'\n'))
+    records = [str.split(x) for x in str.split(stream.str(),'\n')]
     for x in records:
 
         # skip junk
@@ -164,7 +162,7 @@ def main():
         elif len(x) == 7:
             hascounter = True
             a, branch, c, btype, maxcount, d, countername = x
-            maxcount = atoi(maxcount[1:-1])
+            maxcount = int(maxcount[1:-1])
         else:
             sys.exit("\t**hmmm...not sure what to do with:\n\t%s\n\tchoi!" % x)
             
@@ -178,7 +176,7 @@ def main():
             skipped_at_least_one = True
             continue            
             
-        btype = replace(lower(btype), "_t", "")
+        btype = str.replace(str.lower(btype), "_t", "")
         vtype = getvtype.findall(btype)
         if len(vtype) == 1:
             btype = vtype[0] # vector type
@@ -191,7 +189,7 @@ def main():
 
         # make a name for yourself
         # but take care of duplicate names
-        t = split(branch, '.')
+        t = str.split(branch, '.')
         bname = t[0]
 
         if len(t) > 1:
@@ -206,12 +204,12 @@ def main():
         else:
             if len(countname.findall(t[0])) > 0:
                 #t[0] = split(lower(countname.sub("", t[0])),'_')[0]
-                t[0] = split(countname.sub("", t[0]),'_')[0]
+                t[0] = str.split(countname.sub("", t[0]),'_')[0]
         #t[0] = replace(t[0], 'helper', '')
 
         # check for duplicate names
         key = t[0]
-        if not dupname.has_key(key):
+        if not (key in dupname):
             dupname[key] = [bname, 0]			
         if dupname[key][0] != bname:
             a, n = dupname[key]
@@ -222,11 +220,11 @@ def main():
             t[0] = "%s%d" % (t[0], dupname[key][1])
         # first strip away namespace
         t[0] = namespace.sub("", t[0])
-        name = joinfields(t, '_')
+        name = '_'.join(t) #fields(t, '_')
 
         # check whether to include treename in name
-        if find(name, '/') > 0:
-            t = split(name, '/')
+        if str.find(name, '/') > 0:
+            t = str.split(name, '/')
             # this name contains a tree name
             if usetree:
                 name = '%s_%s' % (t[0], t[-1])
@@ -237,6 +235,7 @@ def main():
         record = "%s\t%s\t%s %d %s\n" % (btype, branch, name, maxcount, lc)
         out.write(record)
     out.close()
+    
     skipped.close()
     if not skipped_at_least_one:
         os.system("rm -rf variables_skipped.txt")

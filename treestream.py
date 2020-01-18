@@ -2,9 +2,9 @@ try:
     import ROOT
     ROOT.gSystem.Load('$TREESTREAM_PATH/lib/libtreestream')
     from ROOT import itreestream, otreestream, testme
-    print "loaded treestream"
+    print("loaded treestream")
 except:
-    print "**fail to load treestream"
+    print("**fail to load treestream")
     
 
 
