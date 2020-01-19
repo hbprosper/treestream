@@ -37,7 +37,7 @@ struct outputFile
   void close();
 
   std::string filename_;  
-  TFile* file_;
+  TFile* file;
   TTree* tree;
   TH1F*  hist_;
   TBranch* b_weight_;
