@@ -8,7 +8,7 @@ import os, sys, re
 try:
     from treestream import itreestream
 except:
-    print "\t** libtreestream not found"
+    print("\t** libtreestream not found")
     sys.exit('''
 try installing the treestream package:
     
@@ -25,7 +25,6 @@ try installing the treestream package:
     make install
     ''')
 import ROOT as rt
-from string import joinfields
 # ----------------------------------------------------------------------------
 def usage():
     sys.exit('''
@@ -40,11 +39,8 @@ if argc < 1: usage()
 # get ntuple file name
 filename = argv[0]
 if not os.path.exists(filename):
-    print "\t** file %s not found" % filename
-    sys.exit(0)
+    sys.exit("\t** file %s not found" % filename)
 # ----------------------------------------------------------------------------
-  
-
 def main():
     # 2nd argument is the TTree name
     if argc > 1:
@@ -56,8 +52,7 @@ def main():
         treename = stream.tree().GetName()
         
     if not stream.good():
-        print "\t** hmmmm...something amiss here!"
-        sys.exit(0)
+        sys.exit("\t** hmmmm...something amiss here!")
     # list branches and leaves
     stream.ls()
 # ----------------------------------------------------------------------------

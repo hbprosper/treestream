@@ -89,6 +89,11 @@
 #include "TList.h"
 #include "TIterator.h"
 #include "TFriendElement.h"
+#include "TString.h"
+#include "TPRegexp.h"
+#include "TClassEdit.h"
+#include "TObjArray.h"
+#include "TObjString.h"
 
 #ifdef PROJECT_NAME
 #include "PhysicsTools/TheNtupleMaker/interface/treestream.h"
@@ -605,6 +610,7 @@ namespace
     FieldBuffer<T>* v = new FieldBuffer<T>();
     assert(v != 0);
 
+    v->skip      = false;
     v->iotype    = field->iotype;
     v->srctype   = field->srctype;
     v->address   = field->address;
@@ -626,7 +632,7 @@ namespace
     v->value.clear();
     v->value.reserve(v->maxsize);
     v->value.resize(v->maxsize, 0);
-
+    //DEBUG
     if ( DEBUGLEVEL > 0 )
       {
 	cout << "\tcreatebranch: fullname: " << v->fullname << endl;
@@ -665,6 +671,7 @@ namespace
 	    l->countername = "";  // a leaf counter does not have a leaf counter!
 	    
 	    l->iscounter = true;
+	    l->skip      = false;
 	    l->leafname  = ""; 
 	    l->branch    = 0;
 	    l->leaf      = 0;
@@ -747,6 +754,7 @@ namespace
     v->branchname= field->branchname;
     
     v->iscounter= false;
+    v->skip     = false;
     v->size     = 1;    
     v->branch   = 0;
     v->leaf     = 0;
@@ -1390,7 +1398,7 @@ itreestream::close()
   _statuscode = kSUCCESS;
   
   if ( _tree == 0 ) return;
-  DBUG("itreestream::close file",3);
+  DBUG("itreestream::close file", 1);
   if ( _delete ) delete  _tree;
   _tree = 0;
 }
@@ -1595,6 +1603,28 @@ itreestream::get(string namen)
     return 0; 
 }
 
+void
+itreestream::read(int start, vector<vector<double> >& v) 
+{
+  if ( v.size() < _bufmap.size() ) return;
+
+  size_t nrows = size() < v[0].size() ? size() : v[0].size();
+  for(size_t c=0; c < nrows; c++)
+    {      
+      int entry = start + c;
+      read(entry);
+
+      int j=0;
+      map<string, int>::iterator it = _bufmap.begin();  
+      for(it=_bufmap.begin(); it != _bufmap.end(); it++)
+	{
+	  v[j][c] = _buffer[ it->second ];
+	  j++;
+	}
+    }
+}
+
+
 // ------------------------------------------------------------------------
 // Read tree with ordinal value entry.
 // ------------------------------------------------------------------------
@@ -1648,6 +1678,7 @@ itreestream::read(int entry)
     {
       Field* field = it->second;
       assert(field != 0);
+      if ( field->skip ) continue;
       if ( ! field->iscounter ) continue;
       readbranch(field, localentry);
     }
@@ -1658,6 +1689,7 @@ itreestream::read(int entry)
     {
       Field* field = it->second;
       assert(field != 0);
+      if ( field->skip ) continue;
       if ( field->iscounter ) continue;
       readbranch(field, localentry);
     }
@@ -2187,9 +2219,8 @@ otreestream::close(bool closefile)
 
   if ( closefile )
     {
-      _file->Write("", TObject::kOverwrite);
-      _file->Close();
-
+      _file->Write(0, TObject::kOverwrite); //kWriteDelete
+      _file->Close(); // causes a crash in ROOT 
       delete _file;
 
       _tree = 0;

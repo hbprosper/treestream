@@ -74,6 +74,7 @@ struct Field
     iotype(' '),
     isvector(0),
     iscounter(false),
+    skip(false),
     maxsize(0),
     chain(0),
     branch(0),
@@ -92,6 +93,7 @@ struct Field
   char   iotype;          /// Input/Output type
   int    isvector;        /// 0 scaler, 1 vector, 2 2-d vector type
   bool   iscounter;       /// true if this is a leaf counter
+  bool   skip;            /// true: do not read data
   int    maxsize;         /// Maximum number of elements in source variable
   int    size;            /// Size of field
   
@@ -276,8 +278,6 @@ class itreestream
 
   ///
   void   select(std::string namen, std::vector<std::vector<float> >& data);
-
-  //void   select(std::string namen, std::vector<float*>& data);
   
   ///
   void   select(std::string namen, std::vector<std::vector<long> >& data);
@@ -298,6 +298,13 @@ class itreestream
   */
   int    read(int entry);
 
+
+  /** Read tree starting at <i>entry</i> start. 
+      The number of rows returned is given by the size of the vector.
+      The number of vectors must match the number of branches selected.
+  */
+  void read(int start, std::vector<std::vector<double> >& v);
+  
   ///
   void   close();
 

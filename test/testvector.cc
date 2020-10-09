@@ -1,16 +1,11 @@
 //----------------------------------------------------------------------------
-// File: testtreestream.cc
+// File: testvector.cc
 // Description:
 //  
 // Writing code to create and and read flat ROOT ntuples (ones that store the
 // standard types, int, long, float, double, string and arrays thereof) is a
 // routine task. It is so routine in fact that this chore ought to be done
-// for you...by a machine. That is the purpose of the package treestream. It
-// handles all the boilerplate ROOT code for creating and reading flat ROOT
-// ntuples and does so through a very simple interface. treestream is the
-// modern incarnation of a package written in 2001 when the author finally
-// got fed up of writing the same boilerplate code to create and read flat
-// ntuples.
+// for you...by a machine. That is the purpose of the package treestream. 
 // 
 // The package contains two classes itreestream and otreestream that can
 // be called from C++ or Python (via PyROOT). This example shows how to
@@ -20,23 +15,26 @@
 //----------------------------------------------------------------------------
 #include <ctime>
 #include <iomanip>
+#include <vector>
 #include "TRandom3.h"
 #include "treestream.h"
 using namespace std;
 //----------------------------------------------------------------------------
-void write_ntuple(string filename="test.root", string treename="Events")
+const string FILENAME("testvector.root");
+const string TREENAME("Events");
+//----------------------------------------------------------------------------
+void write_ntuple(string filename=FILENAME,
+		  string treename=TREENAME)
 {
   time_t t = time(0);
   otreestream stream(filename, treename, ctime(&t));
 
   double HT = 0;
-  int njet  = 0;
-  vector<float> jetet(20);
+  vector<float> jetet(20);  
   string comment(80, ' ');
 
-  stream.add("HT", HT);  
-  stream.add("njet", njet);
-  stream.add("jetet[njet]", jetet);
+  stream.add("HT", HT);
+  stream.tree()->Branch("jetet",  &jetet);
   stream.add("comment", comment);
   
   TRandom3 rand;
@@ -45,7 +43,7 @@ void write_ntuple(string filename="test.root", string treename="Events")
 
   for(int entry=0; entry < entries; entry++)
     {
-      njet = rand.Integer(10);
+      int njet = rand.Integer(10);
       jetet.clear();
       HT = 0.0;
       for(int i=0; i < njet; i++)
@@ -66,7 +64,6 @@ void write_ntuple(string filename="test.root", string treename="Events")
 	       << setw(5) << jetet.size()  
 	       << setw(10)<< HT
 	       << " (" << comment << ")"	    
-	       << " njet = " << njet	    
 	       << endl;
 	}
     }
@@ -75,19 +72,18 @@ void write_ntuple(string filename="test.root", string treename="Events")
   stream.close();
 }
 //----------------------------------------------------------------------------
-void read_ntuple(string filename="test.root", string treename="Events")
+void read_ntuple(string filename=FILENAME,
+		 string treename=TREENAME)
 {
   itreestream stream(filename, treename);
   
   int entries = stream.entries();
   stream.ls();
 
-  int njet;
   double HT;
   vector<float> jetet(20);
   string comment(80, ' ');
 
-  stream.select("njet", njet);
   stream.select("jetet", jetet);
   stream.select("comment", comment);
   stream.select("HT", HT);
@@ -102,7 +98,6 @@ void read_ntuple(string filename="test.root", string treename="Events")
 	     << setw(5) << jetet.size() 
              << setw(10)<< HT
 	     << " (" << comment << ")"
-	     << " njet = " << njet
              << endl;
     }
   stream.close();

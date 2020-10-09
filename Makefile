@@ -17,7 +17,11 @@ libdir	:= lib
 bindir	:= bin
 testdir	:= test
 
-SRCTESTS:= $(testdir)/testtreestream.cc $(testdir)/testdelphes.cc
+SRCTESTS:= \
+$(testdir)/testtreestream.cc \
+$(testdir)/testdelphes.cc \
+$(testdir)/testvector.cc
+
 OBJTESTS:= $(SRCTESTS:.cc=.o)
 TESTS	:= $(SRCTESTS:.cc=)
 
@@ -42,7 +46,7 @@ OBJECTS		:= $(SRCS:.cc=.o) $(OTHERSRCS:.cc=.o) $(DICTIONARIES:.cc=.o)
 #say := $(shell echo "DICTIONARIES:     $(DICTIONARIES)" >& 2)
 #say := $(shell echo "" >& 2)
 #say := $(shell echo "SRCS: $(SRCS)" >& 2)
-#say := $(shell echo "OBJECTS: $(OBJECTS)" >& 2)
+#say := $(shell echo "TESTS: $(TESTS)" >& 2)
 #$(error bye)
 # ----------------------------------------------------------------------------
 ROOTCINT	:= rootcint
@@ -70,12 +74,13 @@ else
 	LDEXT	:= .so
 endif
 
-ROOTFLAGS:= $(shell root-config --ldflags)
+
 LDFLAGS += $(ROOTFLAGS) -Wl,-rpath,$(ROOTSYS)/lib
 LIBS 	:= $(shell root-config --libs)
 LIBRARY	:= $(libdir)/lib$(NAME)$(LDEXT)
 # ----------------------------------------------------------------------------
-all: $(LIBRARY) $(TESTS)
+all: $(TESTS) $(LIBRARY)
+
 ifdef EXTERNAL
 install:
 	cp $(bindir)/mk*.py $(EXTERNAL)/bin
@@ -85,7 +90,7 @@ install:
 	find $(libdir) -name "*.pcm" -exec mv {} $(EXTERNAL)/lib \;
 endif
 
-$(TESTS)	: %	:	%.o
+$(TESTS)	: %	:	%.o	$(LIBRARY)
 	@echo ""
 	@echo "=> Linking test program $@"
 	$(LD) $(ROOTFLAGS) $^ -L$(libdir) -l$(NAME) $(LIBS) -o $@
@@ -115,7 +120,8 @@ tidy:
 	rm -rf $(srcdir)/*_dict*.* $(srcdir)/*.o $(testdir)/*.o
 
 clean:
-	rm -rf $(libdir)/* $(srcdir)/*_dict*.* $(srcdir)/*.o $(TEST) $(TEST).o
+	rm -rf $(libdir)/* $(srcdir)/*_dict*.* $(srcdir)/*.o
+	rm -rf $(TESTS) $(OBJTESTS)
 	rm -rf $(EXTERNAL)/lib/*$(NAME)*
 	rm -rf $(EXTERNAL)/lib/pdg_*.pcm
 	rm -rf $(EXTERNAL)/include/*$(NAME)*
