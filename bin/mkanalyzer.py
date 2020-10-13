@@ -36,7 +36,7 @@ from glob import glob
 # Functions
 #-----------------------------------------------------------------------------
 VERSION = 'v2.0.2 15-Apr-2019'
-getvno = re.compile(r'[0-9]+$')
+getvno  = re.compile(r'[0-9]+$')
 
 def usage():
     sys.exit('''
@@ -57,7 +57,7 @@ def getauthor():
     regex  = re.compile(r'(?<=[0-9]:)[A-Z]+[a-zA-Z. ]+')
     record = str.strip(os.popen("which getent").read())
     if record != "":
-        record = strip(os.popen("getent passwd $USER").read())
+        record = str.strip(os.popen("getent passwd $USER").read())
     author = "Shakespeare's ghost"
     if record != "":
         t = regex.findall(record)
@@ -69,8 +69,8 @@ getvtype = re.compile('(?<=vector[<]).+(?=[>])')
 AUTHOR = getauthor()
 
 if "CMSSW_BASE" in os.environ:
-    CMSSW_BASE = os.environ["CMSSW_BASE"]
-    PACKAGE = "%s/src/PhysicsTools/TheNtupleMaker" % CMSSW_BASE
+    CMSSW_BASE     = os.environ["CMSSW_BASE"]
+    PACKAGE        = "%s/src/PhysicsTools/TheNtupleMaker" % CMSSW_BASE
     TREESTREAM_HPP = "%s/interface/treestream.h" % PACKAGE    
     TREESTREAM_CPP = "%s/src/treestream.cc"  % PACKAGE
     
@@ -106,7 +106,9 @@ if not os.path.exists(TREESTREAM_HPP):
     mkdir -p external/lib
     mkdir -p external/include
     cd external
-    git clone https://github.com/hbprosper/treestream.git
+    git clone https://github.com/hbprosper/treestream
+ or
+    git clone git://github.com/hbprosper/treestream
 
     then
     
@@ -846,17 +848,23 @@ def main():
         has_leafcounter = len(tns) == 5
         if has_leafcounter:
             rtype, branchname, varname, count, countername = tns
-        else:
+        elif len(tns) == 4:
             rtype, branchname, varname, count = tns
             countername = None
+        else:
+            sys.exit('''
+ ** mkanalyzer.py ***
+            missing maximum count at end of record:
+            %s
+            ''' % tns)
 
         # set up count
         count = int(count) # change type to an integer
         if count > 1:
             from math import sqrt
-            count = int(count + 5*sqrt(count))
-            ii = count / 5
-            count = (ii+1)*5
+            count = int(count + 4*sqrt(count))
+            ii = count / 4
+            count = (ii+1)*4
         elif count < 1:
             count = 100
         tokens[index][3] = '%d' % count
