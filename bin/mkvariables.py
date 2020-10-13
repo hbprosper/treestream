@@ -180,8 +180,9 @@ def main():
         vtype = getvtype.findall(btype)
         if len(vtype) == 1:
             btype = vtype[0] # vector type
-            maxcount = 100   # default maximum count for vectors
-
+            maxcount = 50   # default maximum count for vectors
+            btype = "vector<%s>" % btype
+            
         if hascounter:
             lc = countername
         else:
@@ -190,10 +191,16 @@ def main():
         # make a name for yourself
         # but take care of duplicate names
         t = str.split(branch, '.')
+
+        t[0]  = t[0].split('/')[-1]
         bname = t[0]
 
         if len(t) > 1:
-            #t[0] = lower(t[0])			
+            # handle TNM branch names
+            #t[0] = lower(t[0])
+
+            t[0] = t[0].split('_')[0]
+
             a = patname.findall(t[0])
             if len(a) == 0:
                 a = reconame.findall(t[0])
@@ -223,13 +230,11 @@ def main():
         name = '_'.join(t) #fields(t, '_')
 
         # check whether to include treename in name
-        if str.find(name, '/') > 0:
-            t = str.split(name, '/')
-            # this name contains a tree name
-            if usetree:
-                name = '%s_%s' % (t[0], t[-1])
-            else:
-                name = t[-1]
+        print(treename, name)
+        if usetree:
+            # the treename may include a directory.
+            treename = treename.split('/')[-1]
+            name     = '%s_%s' % (treename, name)
         
         # write out info for current branch/leaf
         record = "%s\t%s\t%s %d %s\n" % (btype, branch, name, maxcount, lc)

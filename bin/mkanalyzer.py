@@ -26,6 +26,7 @@
 #                            ROOT and Mac OS treat environment variables
 #                          - protect against zero maxcount
 #          23-Mar-2019 HBP - Add user supplied cppflags to CPPFLAGS
+#          12-Oct-2020 HBP - Adapt to ROOT6 version of TNM
 #-----------------------------------------------------------------------------
 import os, sys, re, posixpath
 #from string import lower, split, strip, find
@@ -63,34 +64,35 @@ def getauthor():
         if len(t) > 0: author = t[0]
     return author
 #-----------------------------------------------------------------------------
+getvtype = re.compile('(?<=vector[<]).+(?=[>])')
+#-----------------------------------------------------------------------------
 AUTHOR = getauthor()
 
-#if os.environ.has_key("CMSSW_BASE"):
-#    CMSSW_BASE = os.environ["CMSSW_BASE"]
-#    PACKAGE = "%s/src/PhysicsTools/TheNtupleMaker" % CMSSW_BASE
-#    TREESTREAM_HPP = "%s/interface/treestream.h" % PACKAGE    
-#    TREESTREAM_CPP = "%s/src/treestream.cc"  % PACKAGE
+if "CMSSW_BASE" in os.environ:
+    CMSSW_BASE = os.environ["CMSSW_BASE"]
+    PACKAGE = "%s/src/PhysicsTools/TheNtupleMaker" % CMSSW_BASE
+    TREESTREAM_HPP = "%s/interface/treestream.h" % PACKAGE    
+    TREESTREAM_CPP = "%s/src/treestream.cc"  % PACKAGE
     
-#    TNM_HPP = "%s/interface/tnm.h" % PACKAGE
-#    TNM_CPP = "%s/src/tnm.cc" % PACKAGE
-#    TNM_PY  = "%s/python/tnm.py" % PACKAGE
-#else:
-if 'TREESTREAM_PATH' in os.environ:
-        area  = {'local': '%s' % os.environ['TREESTREAM_PATH']}
-        TREESTREAM_HPP = "%(local)s/include/treestream.h" % area
-        TREESTREAM_CPP = "%(local)s/src/treestream.cc" % area
-        
-        TNM_HPP = "%(local)s/tnm/tnm.h"  % area
-        TNM_CPP = "%(local)s/tnm/tnm.cc" % area
-        TNM_PY  = "%(local)s/tnm/tnm.py" % area
+    TNM_HPP = "%s/interface/tnm.h" % PACKAGE
+    TNM_CPP = "%s/src/tnm.cc" % PACKAGE
+    TNM_PY  = "%s/python/tnm.py" % PACKAGE
+elif 'TREESTREAM_PATH' in os.environ:
+    area  = {'local': '%s' % os.environ['TREESTREAM_PATH']}
+    TREESTREAM_HPP = "%(local)s/include/treestream.h" % area
+    TREESTREAM_CPP = "%(local)s/src/treestream.cc" % area
+    
+    TNM_HPP = "%(local)s/tnm/tnm.h"  % area
+    TNM_CPP = "%(local)s/tnm/tnm.cc" % area
+    TNM_PY  = "%(local)s/tnm/tnm.py" % area
 else:
-        TREESTREAM_HPP = "treestream.h"
-        TREESTREAM_CPP = "treestream.cc"
-        
-        TNM_HPP = "tnm.h"
-        TNM_CPP = "tnm.cc"
-        TNM_PY  = "tnm.py"
+    TREESTREAM_HPP = "treestream.h"
+    TREESTREAM_CPP = "treestream.cc"
     
+    TNM_HPP = "tnm.h"
+    TNM_CPP = "tnm.cc"
+    TNM_PY  = "tnm.py"
+
 # Make sure that we can find treestream etc.
 
 if not os.path.exists(TREESTREAM_HPP):
@@ -1022,7 +1024,7 @@ def main():
             if str.find(rtype, 'vector') > -1:
                 # VECTOR
                 rtype = isvector.sub("std::vector", rtype)
-                vtype = getvectype.findall(rtype)
+                vtype = getvtype.findall(rtype)
                 if len(vtype) == 0:
                     sys.exit("** error ** unable to extract type from %s "\
                                  "for variable %s" % \
@@ -1030,7 +1032,7 @@ def main():
                 vtype = vtype[0]
                 
                 declarevec.append("  %s\t%s;" % (rtype, varname))
-                init.append("    %s\t= %s(%d, %s);" % \
+                init.append("    %s\t= %s(%d, (%s)0);" % \
                         (varname, rtype, count, vtype))
             else:
                 # VARIABLE LENGTH ARRAY
@@ -1107,8 +1109,13 @@ def main():
                 cast = '(bool)'
             else:
                 cast = ''
-            # this is a vector
-
+                
+            # check if this is a vector. if it is extract the
+            # underlying type.
+            vtype = getvtype.findall(rtype)
+            if len(vtype) > 0:
+                rtype = vtype[0]
+                
             structdecl.append('    %s\t%s;' % (rtype, fldname))
 
             structimpl.append('        %s[i].%s\t= %s%s[i];' % (objname,
@@ -1146,7 +1153,10 @@ def main():
         structimpl.append('  }\n')  # end of fill<object>s()
         selectimpl.append('          }')
         selectimpl.append('      }')
-        selectimpl.append('    %s = n;' % countername)
+
+        # there is no leaf counter for vector types.
+        if countername != None:
+            selectimpl.append('    %s = n;' % countername)
     structimplall.append('  }')  # end of fillObjects()
     selectimpl.append('  }')  # end of saveObjects()
 

@@ -4,13 +4,16 @@
 #  Description: make a list of variables in specified ntuple
 #  Created:     02-Jan-2018 Harrison B. Prosper
 # ----------------------------------------------------------------------------
-import os, sys, re
+import os, sys, re, ROOT
 try:
     from treestream import itreestream
 except:
-    print("\t** libtreestream not found")
-    sys.exit('''
-try installing the treestream package:
+    try:
+        import PhysicsTools.TheNtupleMaker.AutoLoader
+    except:
+        print("\t** unable to import treestream")
+        sys.exit('''
+Try installing the treestream package:
     
     cd
     mkdir -p external/bin
@@ -22,9 +25,8 @@ try installing the treestream package:
     then
     cd treestream
     make
-    make install
+    source setup.sh
     ''')
-import ROOT as rt
 # ----------------------------------------------------------------------------
 def usage():
     sys.exit('''
@@ -45,10 +47,10 @@ def main():
     # 2nd argument is the TTree name
     if argc > 1:
         # Can have more than one tree
-        treename = joinfields(argv[1:], ' ')
-        stream   = rt.itreestream(filename, treename)     
+        treename = ' '.join(argv[1:])
+        stream   = ROOT.itreestream(filename, treename)     
     else:
-        stream   = rt.itreestream(filename, "")     
+        stream   = ROOT.itreestream(filename, "")     
         treename = stream.tree().GetName()
         
     if not stream.good():

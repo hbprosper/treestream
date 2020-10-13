@@ -1608,7 +1608,7 @@ itreestream::read(int start, vector<vector<double> >& v)
 {
   if ( v.size() < _bufmap.size() ) return;
 
-  size_t nrows = size() < v[0].size() ? size() : v[0].size();
+  size_t nrows = (size_t)size() < v[0].size() ? (size_t)size() : v[0].size();
   for(size_t c=0; c < nrows; c++)
     {      
       int entry = start + c;
