@@ -112,11 +112,9 @@ def main():
             sys.exit("\t** hmmmm...something amiss here!" )
         
         treename = stream.tree().GetName()
-        tname    = str.split(treename)
+        tname    = [treename]
 
     # list branches and leaves
-    stream.ls()
-
     # write out variables.txt after scanning ntuple listing
     print
     print("==> file: %s" % filename)
@@ -230,7 +228,6 @@ def main():
         name = '_'.join(t) #fields(t, '_')
 
         # check whether to include treename in name
-        print(treename, name)
         if usetree:
             # the treename may include a directory.
             treename = treename.split('/')[-1]
