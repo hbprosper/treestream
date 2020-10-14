@@ -74,9 +74,9 @@ if "CMSSW_BASE" in os.environ:
     TREESTREAM_HPP = "%s/interface/treestream.h" % PACKAGE    
     TREESTREAM_CPP = "%s/src/treestream.cc"  % PACKAGE
     
-    TNM_HPP = "%s/interface/tnm.h" % PACKAGE
-    TNM_CPP = "%s/src/tnm.cc" % PACKAGE
-    TNM_PY  = "%s/python/tnm.py" % PACKAGE
+    TNM_HPP = "%s/tnm/tnm.h"  % PACKAGE
+    TNM_CPP = "%s/tnm/tnm.cc" % PACKAGE
+    TNM_PY  = "%s/tnm/tnm.py" % PACKAGE
 elif 'TREESTREAM_PATH' in os.environ:
     area  = {'local': '%s' % os.environ['TREESTREAM_PATH']}
     TREESTREAM_HPP = "%(local)s/include/treestream.h" % area
