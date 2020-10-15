@@ -29,13 +29,12 @@
 #          12-Oct-2020 HBP - Adapt to ROOT6 version of TNM
 #-----------------------------------------------------------------------------
 import os, sys, re, posixpath
-#from string import lower, split, strip, find
 from time import sleep, ctime
 from glob import glob
 #-----------------------------------------------------------------------------
 # Functions
 #-----------------------------------------------------------------------------
-VERSION = 'v2.0.2 15-Apr-2019'
+VERSION = 'v2.0.3 14-Oct-2020'
 getvno  = re.compile(r'[0-9]+$')
 
 def usage():
@@ -784,10 +783,10 @@ def main():
 
     # Get tree name(s)
     t = str.split(records[0])
-    if str.lower(t[0]) == "tree":
+    if str.lower(t[0]) == "tree:":
         treename = t[1]
     else:
-        treename = "Events"
+        treename = ""
     start = 1
     for record in records[1:]:
         record = str.strip(record)
