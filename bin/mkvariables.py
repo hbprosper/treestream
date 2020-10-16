@@ -234,7 +234,7 @@ def main():
             name     = '%s_%s' % (treename, name)
         
         # write out info for current branch/leaf
-        record = "%s\t%s\t%s %d %s\n" % (btype, branch, name, maxcount, lc)
+        record = "%s/%s/%s/%d %s\n" % (btype, branch, name, maxcount, lc)
         out.write(record)
     out.close()
     

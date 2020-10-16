@@ -816,7 +816,7 @@ def main():
 
         # split record into its fields
         # varname = variable name as determined by mkvariables.py
-        tokens.append(str.split(record))
+        tokens.append(str.split(record, "/"))
         varname = tokens[-1][2]
             
         # varname should have the format
@@ -856,6 +856,10 @@ def main():
             missing maximum count at end of record:
             %s
             ''' % tns)
+
+        # for now strings aren't supported
+        if rtype.find("string") > -1: 
+            continue
 
         # set up count
         count = int(count) # change type to an integer
