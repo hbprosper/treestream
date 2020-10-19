@@ -238,7 +238,7 @@ class itreestream
       of the variable to read. You can check that all is well by
       calling the good() method after a call to select. The most likely
       error is failure to provide a buffer of non-zero length.
-      <br>
+                                                                                                                                                                                                                      <br>
       <b>Note</b>: The type of the buffer need not match that of the variable.
   */
   void   select(std::string namen, std::vector<double>& data);
@@ -489,6 +489,38 @@ class otreestream
   ///
   void   add(std::string namen, std::vector<float>& data);
 
+  ///
+  void   add(std::string namen, std::vector<std::string>& data);
+
+  // -----------------------------------------------------------------------
+  ///
+  void   add(std::string namen, std::vector<std::vector<long> >& data);
+
+  ///
+  void   add(std::string namen, std::vector<std::vector<int>>& data);
+
+  ///
+  void   add(std::string namen, std::vector<std::vector<short>>& data);
+
+  ///
+  void   add(std::string namen, std::vector<std::vector<bool>>& data);
+
+  ///
+  void   add(std::string namen, std::vector<std::vector<unsigned int>>& data);
+
+  ///
+  void   add(std::string namen, std::vector<std::vector<unsigned short>>& data);
+
+  ///
+  void   add(std::string namen, std::vector<std::vector<double>>& data);
+
+  ///
+  void   add(std::string namen, std::vector<std::vector<float>>& data);
+
+  ///
+  void   add(std::string namen, std::vector<std::vector<std::string>>& data);
+
+  
   ///
   void   add(std::string namen);
 

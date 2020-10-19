@@ -4,11 +4,12 @@
 // ----------------------------------------------------------------------------
 #include <ctime>
 #include <iomanip>
+#include <typeinfo>
 #include "treestream.h"
 using namespace std;
 // ----------------------------------------------------------------------------
 int main()
-{
+{  
   string filename("fatjet.root");
   string treename("Delphes");
 

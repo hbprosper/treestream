@@ -2310,7 +2310,7 @@ otreestream::add(string namen, vector<float>& d)
 }
 
 void 
-otreestream::add(string namen, vector<long>& d)
+otreestream::add                                                                                    (string namen, vector<long>& d)
 {
   _add(namen, &d, d.size(), 'L', 'L', true);
 }
@@ -2344,6 +2344,73 @@ otreestream::add(string namen, vector<unsigned short>& d)
 {
   _add(namen, &d, d.size(), 's', 's', true);
 }
+
+
+void 
+otreestream::add(string namen, vector<string>& d)
+{
+  _add(namen, &d, d.size(), 'C', 'C', true);
+}
+
+
+
+// Vector of vectors
+
+void 
+otreestream::add(string namen, vector<vector<double>>& d)
+{
+  _add(namen, &d, d.size(), 'D', 'D', true);
+}
+
+void 
+otreestream::add(string namen, vector<vector<float>>& d)
+{
+  _add(namen, &d, d.size(), 'F', 'F', true);
+}
+
+void 
+otreestream::add(string namen, vector<vector<long>>& d)
+{
+  _add(namen, &d, d.size(), 'L', 'L', true);
+}
+
+void 
+otreestream::add(string namen, vector<vector<int>>& d)
+{
+  _add(namen, &d, d.size(), 'I', 'I', true);
+}
+
+void 
+otreestream::add(string namen, vector<vector<short>>& d)
+{
+  _add(namen, &d, d.size(), 'S', 'S', true);
+}
+
+void 
+otreestream::add(string namen, vector<vector<bool>>& d)
+{
+  _add(namen, &d, d.size(), 'O', 'O', true);
+}
+
+void 
+otreestream::add(string namen, vector<vector<unsigned int>>& d)
+{
+  _add(namen, &d, d.size(), 'i', 'i', true);
+}
+
+void 
+otreestream::add(string namen, vector<vector<unsigned short>>& d)
+{
+  _add(namen, &d, d.size(), 's', 's', true);
+}
+
+
+void 
+otreestream::add(string namen, vector<vector<string>>& d)
+{
+  _add(namen, &d, d.size(), 'C', 'C', true);
+}
+
 
 void 
 otreestream::add(string namen)
