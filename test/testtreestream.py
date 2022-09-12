@@ -55,7 +55,7 @@ def write_ntuple(filename="test.root", treename="Events"):
     # -------------------------------------------------
     stream.add("HT", HT)
     stream.add("njet", njet)
-    stream.add("jetet[njet]", jetet)
+    stream.add("jetet", jetet)
     stream.add("comment", comment)
     
     # -------------------------------------------------
@@ -85,7 +85,7 @@ def write_ntuple(filename="test.root", treename="Events"):
             print("%5d%5d%10.4f (%s) njet = %2d" % \
                   (entry, jetet.size(), HT.value, comment, njet.value))
 
-    stream.close()
+    #stream.close()
     open('write.log', 'w').write(record)
 #------------------------------------------------------------------------------
 def read_ntuple(filename="test.root", treename="Events"):
@@ -125,8 +125,8 @@ def read_ntuple(filename="test.root", treename="Events"):
 #------------------------------------------------------------------------------
 def main():
     write_ntuple()
-    print
-    read_ntuple()
+    print('==== Before end ===')
+    #read_ntuple()
 
 main()
 

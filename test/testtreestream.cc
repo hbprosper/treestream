@@ -19,7 +19,7 @@
 // Created: 20-Sep-2018 Harrison B. Prosper
 //----------------------------------------------------------------------------
 #include <ctime>
-#include <iomanip>
+//#include <iomanip>
 #include "TRandom3.h"
 #include "treestream.h"
 using namespace std;
@@ -36,8 +36,8 @@ void write_ntuple(string filename="test.root", string treename="Events")
 
   stream.add("HT", HT);  
   stream.add("njet", njet);
-  stream.add("jetet[njet]", jetet);
-  stream.add("comment", comment);
+  //stream.add("jetet[njet]", jetet);
+  //stream.add("comment", comment);
   
   TRandom3 rand;
   int entries = 1000;
@@ -60,60 +60,60 @@ void write_ntuple(string filename="test.root", string treename="Events")
  
       stream.commit();
 
-      if ( entry % step == 0 )
-	{
-	  cout << setw(5) << entry 
-	       << setw(5) << jetet.size()  
-	       << setw(10)<< HT
-	       << " (" << comment << ")"	    
-	       << " njet = " << njet	    
-	       << endl;
-	}
+      // if ( entry % step == 0 )
+      // 	{
+      // 	  cout << setw(5) << entry 
+      // 	       << setw(5) << jetet.size()  
+      // 	       << setw(10)<< HT
+      // 	       << " (" << comment << ")"	    
+      // 	       << " njet = " << njet	    
+      // 	       << endl;
+      // 	}
     }
 
   //cout << endl << "close file" << endl << endl;
   stream.close();
 }
 //----------------------------------------------------------------------------
-void read_ntuple(string filename="test.root", string treename="Events")
-{
-  itreestream stream(filename, treename);
+// void read_ntuple(string filename="test.root", string treename="Events")
+// {
+//   itreestream stream(filename, treename);
   
-  int entries = stream.entries();
-  stream.ls();
+//   int entries = stream.entries();
+//   stream.ls();
 
-  int njet;
-  double HT;
-  vector<float> jetet(20);
-  string comment(80, ' ');
+//   int njet;
+//   double HT;
+//   vector<float> jetet(20);
+//   string comment(80, ' ');
 
-  stream.select("njet", njet);
-  stream.select("jetet", jetet);
-  stream.select("comment", comment);
-  stream.select("HT", HT);
+//   stream.select("njet", njet);
+//   stream.select("jetet", jetet);
+//   stream.select("comment", comment);
+//   stream.select("HT", HT);
 
-  int step = 200;
-  for(int entry=0; entry < entries; entry++)
-    {
-      stream.read(entry);
+//   int step = 200;
+//   for(int entry=0; entry < entries; entry++)
+//     {
+//       stream.read(entry);
 
-      if ( entry % step == 0 )
-        cout << setw(5) << entry 
-	     << setw(5) << jetet.size() 
-             << setw(10)<< HT
-	     << " (" << comment << ")"
-	     << " njet = " << njet
-             << endl;
-    }
-  stream.close();
-}
+//       if ( entry % step == 0 )
+//         cout << setw(5) << entry 
+// 	     << setw(5) << jetet.size() 
+//              << setw(10)<< HT
+// 	     << " (" << comment << ")"
+// 	     << " njet = " << njet
+//              << endl;
+//     }
+//   stream.close();
+// }
 //----------------------------------------------------------------------------
 int main()
 {
   cout << endl << "treestream: WRITE test" << endl;
   write_ntuple();
   
-  cout << endl << "treestream: READ  test" << endl;  
-  read_ntuple();
+  //cout << endl << "treestream: READ  test" << endl;  
+  //read_ntuple();
   return 0;
 }

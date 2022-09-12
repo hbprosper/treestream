@@ -14,7 +14,7 @@
 //              name/value pairs is readily achieved with, well, name/value 
 //              pairs! Name/value pair is just another name for variable.
 // 
-//              Thinking in terms of objects, in the context of high energy 
+//              Thinking in terms of objects, in the context of high-energy 
 //              physics analysis, has yielded great complexity. On the other 
 //              hand, thinking in terms of name/value pairs reduces the 
 //              complexity enormously. The irreducible complexity, which 
@@ -2220,7 +2220,7 @@ otreestream::close(bool closefile)
   if ( closefile )
     {
       _file->Write(0, TObject::kOverwrite); //kWriteDelete
-      _file->Close(); // causes a crash in ROOT 
+      //_file->Close(); // causes a crash in ROOT 
       delete _file;
 
       _tree = 0;

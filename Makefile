@@ -6,8 +6,8 @@ ifndef ROOTSYS
 $(error *** Please set up Root)
 endif
 
-ifndef EXTERNAL
-EXTERNAL:=.
+ifndef TREESTREAM_PREFIX
+TREESTREAM_PREFIX := $(CONDA_PREFIX)
 endif
 # ----------------------------------------------------------------------------
 NAME	:= treestream
@@ -43,10 +43,12 @@ DICTIONARIES	:= $(SRCS:.cc=_dict.cc)
 # get list of objects
 OBJECTS		:= $(SRCS:.cc=.o) $(OTHERSRCS:.cc=.o) $(DICTIONARIES:.cc=.o)
 
+PYTHONLIB	:= python$(shell python --version | cut -c 8-10)
+
 #say := $(shell echo "DICTIONARIES:     $(DICTIONARIES)" >& 2)
 #say := $(shell echo "" >& 2)
 #say := $(shell echo "SRCS: $(SRCS)" >& 2)
-#say := $(shell echo "TESTS: $(TESTS)" >& 2)
+#say := $(shell echo "PYTHON_LIB: $(PYTHONLIB)" >& 2)
 #$(error bye)
 # ----------------------------------------------------------------------------
 ROOTCINT	:= rootcint
@@ -54,14 +56,15 @@ ROOTCINT	:= rootcint
 # check for clang++, otherwise use g++
 COMPILER	:= $(shell which clang++)
 ifneq ($(COMPILER),)
-CXX		:= clang++
-LD		:= clang++
+CXX		:= /usr/bin/clang++
+LD		:= /usr/bin/clang++
 else
 CXX		:= g++
 LD		:= g++
 endif
-CPPFLAGS	:= -I. -I$(incdir) $(shell root-config --cflags)
-CXXFLAGS	:= -c -g -O2 -ansi -O -Wall -pipe -fPIC
+CPPFLAGS	:= -I. -I$(incdir)
+CXXFLAGS	:= -O -Wall -fPIC -g -ansi -Wshadow -Wextra \
+$(shell root-config --cflags)
 LDFLAGS		:= -g
 # ----------------------------------------------------------------------------
 # which operating system?
@@ -79,26 +82,18 @@ LDFLAGS += $(ROOTFLAGS) -Wl,-rpath,$(ROOTSYS)/lib
 LIBS 	:= $(shell root-config --libs)
 LIBRARY	:= $(libdir)/lib$(NAME)$(LDEXT)
 # ----------------------------------------------------------------------------
-all: $(TESTS) $(LIBRARY)
+all: $(LIBRARY) $(TESTS)
 
-ifdef EXTERNAL
+ifdef TREESTREAM_PREFIX
 install:
-	cp $(bindir)/mk*.py $(EXTERNAL)/bin
-	cp $(incdir)/treestream.h $(EXTERNAL)/include
-	cp $(incdir)/pdg.h $(EXTERNAL)/include
-	cp $(libdir)/lib$(NAME)$(LDEXT) $(EXTERNAL)/lib
-	find $(libdir) -name "*.pcm" -exec mv {} $(EXTERNAL)/lib \;
+	cp $(bindir)/mk*.py $(TREESTREAM_PREFIX)/bin
+	cp $(incdir)/treestream.h $(TREESTREAM_PREFIX)/include
+	cp $(incdir)/pdg.h $(TREESTREAM_PREFIX)/include
+	cp $(libdir)/lib$(NAME)$(LDEXT) $(TREESTREAM_PREFIX)/lib
+	find $(libdir) -name "*.pcm" -exec mv {} $(TREESTREAM_PREFIX)/lib \;
+	cp treestream.py $(TREESTREAM_PREFIX)/lib/$(PYTHONLIB)/site-packages
 endif
 
-$(TESTS)	: %	:	%.o	$(LIBRARY)
-	@echo ""
-	@echo "=> Linking test program $@"
-	$(LD) $(ROOTFLAGS) $^ -L$(libdir) -l$(NAME) $(LIBS) -o $@
-
-$(OBJTESTS)	: %.o	:	%.cc
-	@echo ""
-	@echo "=> Compiling $<"
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
 
 $(LIBRARY)	: $(OBJECTS)
 	@echo ""
@@ -116,13 +111,27 @@ $(DICTIONARIES)	: $(srcdir)/%_dict.cc	: $(incdir)/%.h $(srcdir)/%_linkdef.h
 	$(ROOTCINT)	-f $@ -c $(CPPFLAGS) $^
 	find $(srcdir) -name "*.pcm" -exec mv {} $(libdir) \;
 
+
+$(OBJTESTS)	: %.o	:	%.cc
+	@echo ""
+	@echo "=> Compiling $<"
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
+
+
+$(TESTS)	: %	:	%.o	$(LIBRARY)
+	@echo ""
+	@echo "=> Linking test program $@"
+	$(LD) $(ROOTFLAGS) $^ -L$(libdir) -l$(NAME) $(LIBS) -o $@
+
+
 tidy:
 	rm -rf $(srcdir)/*_dict*.* $(srcdir)/*.o $(testdir)/*.o
 
 clean:
 	rm -rf $(libdir)/* $(srcdir)/*_dict*.* $(srcdir)/*.o
 	rm -rf $(TESTS) $(OBJTESTS)
-	rm -rf $(EXTERNAL)/lib/*$(NAME)*
-	rm -rf $(EXTERNAL)/lib/pdg_*.pcm
-	rm -rf $(EXTERNAL)/include/*$(NAME)*
-	rm -rf $(EXTERNAL)/include/pdg.h
+	rm -rf $(TREESTREAM_PREFIX)/lib/*$(NAME)*
+	rm -rf $(TREESTREAM_PREFIX)/lib/pdg_*.pcm
+	rm -rf $(TREESTREAM_PREFIX)/include/*$(NAME)*
+	rm -rf $(TREESTREAM_PREFIX)/include/pdg.h
+	rm -rf $(TREESTREAM_PREFIX)/lib/$(PYTHONLIB)/site-packages/$(NAME).py
