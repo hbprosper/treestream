@@ -1,18 +1,10 @@
 treestream
 =======
 A simple interface to Root files containing simple trees, such as the
-CMS NanoAOD. We recommend
+CMS NanoAOD or the Root files created using __Delphes__. The enviroment variable __TREESTREAM_PREFIX__ should be set to the directory in which you wish to install treestream, that is, to the directory containing the bin, lib, and include directories. If you do not use an environment management system such as miniconda3 (a slim version of Anaconda), we suggest
 that you create a directory called __external__ in your home directory,
 as shown below to contain all external packages, and install
-__treestream__ in that directory.  You must 
-define the *environment*  variable __EXTERNAL__, which must point to the
-directory in which  __treestream__ has been installed. Assuming you
-have installed this package in __external__ as recommended, do 
-
-	export EXTERNAL=$HOME/external
-
-You may wish to add this command to your __.bash_profile__, which is a hidden
-file in your home directory. The above command is given for a bash shell.
+treestream in that directory.  You should clone (download) external packages to __external__, but do not try to install treestream within the treestream directory itself!
 
 INSTALLATION
 ```bash
@@ -22,8 +14,10 @@ INSTALLATION
 	mkdir -p external/include
 	mkdir -p external/share
 
+	cd $HOME/external
 	git https://github.com/hbprosper/treestream.git
-	cd external
+	cd treastream
+	export TREESTREAM_PREFIX=$HOME/external (or $CONDA_PREFIX if you use miniconda3)
 	make
 	make install
 ```
@@ -31,7 +25,8 @@ TEST
 ```bash
 	cd test
 	./testtreestream
-	./testtreestream.py
+	./testdelphes
+	./testvector
 ```
 There is also a __jupyter__ notebook version of the test program.
 

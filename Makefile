@@ -1,14 +1,19 @@
 # Build libtreestream.so
 # Created 27 Feb 2013 HBP & SS
 #         30 May 2015 HBP - standardize structure (src, lib, include) 
+#         12 Sep 2022 HBP - use TREESTREAM_PREFIX as installation area and
+#                           allow installation only if the variable is defined
 # ----------------------------------------------------------------------------
 ifndef ROOTSYS
 $(error *** Please set up Root)
 endif
 
 ifndef TREESTREAM_PREFIX
+ifdef CONDA_PREFIX
 TREESTREAM_PREFIX := $(CONDA_PREFIX)
 endif
+endif
+
 # ----------------------------------------------------------------------------
 NAME	:= treestream
 incdir	:= include
@@ -90,7 +95,7 @@ install:
 	cp $(incdir)/treestream.h $(TREESTREAM_PREFIX)/include
 	cp $(incdir)/pdg.h $(TREESTREAM_PREFIX)/include
 	cp $(libdir)/lib$(NAME)$(LDEXT) $(TREESTREAM_PREFIX)/lib
-	find $(libdir) -name "*.pcm" -exec mv {} $(TREESTREAM_PREFIX)/lib \;
+	find $(libdir) -name "*.pcm" -exec cp {} $(TREESTREAM_PREFIX)/lib \;
 	cp treestream.py $(TREESTREAM_PREFIX)/lib/$(PYTHONLIB)/site-packages
 endif
 
@@ -127,6 +132,7 @@ $(TESTS)	: %	:	%.o	$(LIBRARY)
 tidy:
 	rm -rf $(srcdir)/*_dict*.* $(srcdir)/*.o $(testdir)/*.o
 
+ifdef TREESTREAM_PREFIX
 clean:
 	rm -rf $(libdir)/* $(srcdir)/*_dict*.* $(srcdir)/*.o
 	rm -rf $(TESTS) $(OBJTESTS)
@@ -135,3 +141,4 @@ clean:
 	rm -rf $(TREESTREAM_PREFIX)/include/*$(NAME)*
 	rm -rf $(TREESTREAM_PREFIX)/include/pdg.h
 	rm -rf $(TREESTREAM_PREFIX)/lib/$(PYTHONLIB)/site-packages/$(NAME).py
+endif
