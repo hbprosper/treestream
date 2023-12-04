@@ -48,7 +48,10 @@ DICTIONARIES	:= $(SRCS:.cc=_dict.cc)
 # get list of objects
 OBJECTS		:= $(SRCS:.cc=.o) $(OTHERSRCS:.cc=.o) $(DICTIONARIES:.cc=.o)
 
-PYTHONLIB	:= python$(shell python --version | cut -c 8-10)
+PYVER	:= $(shell python --version | cut -d' ' -f2)
+PY1	:= $(shell echo "$(PYVER)"  | cut -d. -f1)
+PY2	:= $(shell echo "$(PYVER)"  | cut -d. -f2)
+PYTHONLIB	:= python$(PY1).$(PY2)
 
 #say := $(shell echo "DICTIONARIES:     $(DICTIONARIES)" >& 2)
 #say := $(shell echo "" >& 2)
@@ -132,8 +135,11 @@ $(TESTS)	: %	:	%.o	$(LIBRARY)
 tidy:
 	rm -rf $(srcdir)/*_dict*.* $(srcdir)/*.o $(testdir)/*.o
 
-ifdef TREESTREAM_PREFIX
 clean:
+	rm -rf $(libdir)/* $(srcdir)/*_dict*.* $(srcdir)/*.o
+
+ifdef TREESTREAM_PREFIX
+uninstall:
 	rm -rf $(libdir)/* $(srcdir)/*_dict*.* $(srcdir)/*.o
 	rm -rf $(TESTS) $(OBJTESTS)
 	rm -rf $(TREESTREAM_PREFIX)/lib/*$(NAME)*

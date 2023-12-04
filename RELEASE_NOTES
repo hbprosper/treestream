@@ -1,3 +1,6 @@
+v2_0_3
+------	1. fix destructor in ostreastream to avoid double delete.
+
 v2_0_2
 ------
 	1. go back to a single header file (treestream.h) since splitting the headers

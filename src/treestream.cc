@@ -2205,6 +2205,7 @@ otreestream::close(bool closefile)
   _statuscode = kSUCCESS;
 
   if ( _file == 0 ) return;
+  if ( _tree == 0 ) return;
   
   DBUG("otreestream::close file (before)", 1);
 
@@ -2220,12 +2221,17 @@ otreestream::close(bool closefile)
   if ( closefile )
     {
       _file->Write(0, TObject::kOverwrite); //kWriteDelete
-      //_file->Close(); // causes a crash in ROOT 
-      delete _file;
-
-      _tree = 0;
-      _file = 0;
+      //_file->Close(); // causes a crash in ROOT
+      try
+	{
+	  delete _file;
+	}
+      catch (...)
+	{}
     }
+  
+  _tree = 0;
+  _file = 0;
 }
 
 bool
